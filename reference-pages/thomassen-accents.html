@@ -1,0 +1,88 @@
+<html>
+<head><title>THOMASSEN-ACCENTS - om-cluster-rules Reference Documentation</title>
+<STYLE TYPE="text/css"><!--  
+
+BODY {background-color: #EEEEEE;
+	  font-family: Verdana;
+font-size: 12;
+color : #0000000;
+}
+
+A:link {text-decoration: underline; color : 333366;}
+A:visited {text-decoration: underline; color : 333366;}
+A:active {Verdana; text-decoration: underline; color:333366;}
+A:hover {Verdana; text-decoration: underline; color: 333366;}
+
+H1 {
+ color : #333333;
+ font-size: 18;
+ font-weight: bold
+ text-align: left;
+}
+	
+H2 {
+ color : #333333;
+ font-size: 16;
+ font-weight: bold;
+}
+
+H3 {
+ color : #444444;
+ font-size: 12;
+ font-weight: bold;
+}
+
+P,UL,LI, TD {	
+ font-size: 11;
+ text-indent: 0cm;
+ text-align: justify;
+}
+.right {text-align: right ;}
+.center {text-align: center ;}
+.top {text-align: top ;}
+   --></style>
+</head>
+<body bgcolor=BBBBBB>
+<br>
+<table align=center bgcolor=FFFFFF width=87%><tr>
+<td>
+<h2>THOMASSEN-ACCENTS</h2>
+<font size=-1>[FUNCTION]</font><br><br>
+</td><td width=130>
+<img src=./omlogo.gif width=100><br>
+<font size=-2 align=right><a href=index.html>om-cluster-rules<br> Function Reference</a></font>
+</td></tr>
+<tr><td colspan=2>
+<font color=882222><b>ARGUMENTS:</b></font><br>
+<table width=100% border=0>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>midi-pitches</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+</table>
+</tr>
+<tr><td colspan=2>
+<br><font color=882222><b>Description:</b></font><p>
+Expects a list of MIDI note numbers (ints) representing a melodic sequence, and returns a list of floats representing the associated melodic accent value of each pitch as defined by the Thomassen model (Thomassen, 1982).<br>
+<br>
+NOTE: no accent values are available for the first two and the last pitch, therefore nil is return for those pitches.<br>
+<br>
+A list of all potential accent strength values is shown below, obtained by systematically combining all values of the model (some of these values may not be possible in reality). High accent values (0.415) are mapped to accents expressed by local max prepared by two upwards steps. Slightly lower accent values (0.355) occur for accents prepared by two downward steps, followed by an upward step.<br>
+<br>
+Accent value 0.335 seems to occurs for mere local max and min (or only local max?). <br>
+<br>
+(0.0 0.028900001 0.0493 0.056100003 0.08409999 0.085 0.0957 0.10890001 0.113900006 0.120699994 0.1411 0.145 0.165 0.17 0.1943 0.20589998 0.22110002 0.2343 0.24069999 0.25 0.2739 0.29 0.33 0.335 0.355 0.415 0.4489 0.4757 0.5 0.50409997 0.5561 0.5893 0.67 0.6889 0.71 0.83 1.0)<br>
+<br>
+* References:<br>
+<br>
+Thomassen, J. M. (1982) Melodic accent: Experiments and a tentative model. The Journal of the Acoustical Society of America. 71 (6), 1596–1605.<br>
+</p><br><br></td></tr>
+<td class=center colspan=2>
+<center><font size=-2>Auto doc generation by OpenMusic 7.3 &copy 2023 IRCAM</font></center>
+</td></tr></table>
+</body></html>

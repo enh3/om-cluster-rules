@@ -1,0 +1,145 @@
+<html>
+<head><title>ACCENTS-IN-OTHER-VOICE - om-cluster-rules Reference Documentation</title>
+<STYLE TYPE="text/css"><!--  
+
+BODY {background-color: #EEEEEE;
+	  font-family: Verdana;
+font-size: 12;
+color : #0000000;
+}
+
+A:link {text-decoration: underline; color : 333366;}
+A:visited {text-decoration: underline; color : 333366;}
+A:active {Verdana; text-decoration: underline; color:333366;}
+A:hover {Verdana; text-decoration: underline; color: 333366;}
+
+H1 {
+ color : #333333;
+ font-size: 18;
+ font-weight: bold
+ text-align: left;
+}
+	
+H2 {
+ color : #333333;
+ font-size: 16;
+ font-weight: bold;
+}
+
+H3 {
+ color : #444444;
+ font-size: 12;
+ font-weight: bold;
+}
+
+P,UL,LI, TD {	
+ font-size: 11;
+ text-indent: 0cm;
+ text-align: justify;
+}
+.right {text-align: right ;}
+.center {text-align: center ;}
+.top {text-align: top ;}
+   --></style>
+</head>
+<body bgcolor=BBBBBB>
+<br>
+<table align=center bgcolor=FFFFFF width=87%><tr>
+<td>
+<h2>ACCENTS-IN-OTHER-VOICE</h2>
+<font size=-1>[FUNCTION]</font><br><br>
+</td><td width=130>
+<img src=./omlogo.gif width=100><br>
+<font size=-2 align=right><a href=index.html>om-cluster-rules<br> Function Reference</a></font>
+</td></tr>
+<tr><td colspan=2>
+<font color=882222><b>ARGUMENTS:</b></font><br>
+<table width=100% border=0>
+<tr>
+<td>
+<i><b>&key</b></i><br>
+</td>
+<td colspan=3>&nbsp;</td></tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>voices</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>accents-voice</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>accent-rule</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>strictness</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>rule-type</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>weight</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+</table>
+</tr>
+<tr><td colspan=2>
+<br><font color=882222><b>Description:</b></font><p>
+Restricts where metric accents occur depending on the note onsets defined in an 'accents voice'. If an accent occurs, then it is on the position defined. <br>
+<br>
+Args:<br>
+  voices (int or list of ints): The numbers of voice(s) to constrain.<br>
+<br>
+  accent-rule (menu item or function): A function returning true if an accent is expressed and nil otherwise. The function expects one of more arguments, all in the form (dur offs), where dur is the duration of a note and offs is the offset to the following accent (i.e. the duration until the following accent). Example: '(1/4 -1/8). A note is 'on' the accent if its offset = 0. <br>
+Some accent rules are predefined and can be simply selected in the menu of the argument. Other predefined accent rules expect additional arguments controlling their effect. These are available under the Cluster Rules sub menu rhythm - accent rules.<br>
+<br>
+  strictness: Controls how events are constrained. There are three different cases.<br>
+    :note: if an event meets the accent-rule, then it must be on accented position (there is a simultaneous note onset in the accent-voice). However, there can be such accented positions without notes meeting the accent-rule.<br>
+    :position: if an event is on an accented position then it must meet the accent-rule. However, there can be accentuated notes at other positions. Also, if a note continues sounding at the accented position that started earlier then no accent at that position can be enforced (because only notes in voices are checked, not in accents-voice).<br>
+    :note-n-position: if an event meets the accent-rule, then it must be on a specified accented position -- and vice versa.<br>
+<br>
+Optional args:<br>
+<br>
+  accents-voice: the number of the voice that defines accents. Each note onset in accents-voice is taken as an accent for the given voices.<br>
+<br>
+Other arguments are inherited from r-rhythm-rhythm.<br>
+<br>
+</p><br><br></td></tr>
+<td class=center colspan=2>
+<center><font size=-2>Auto doc generation by OpenMusic 7.3 &copy 2023 IRCAM</font></center>
+</td></tr></table>
+</body></html>

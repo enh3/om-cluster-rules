@@ -1,0 +1,130 @@
+<html>
+<head><title>SIMILAR-SIM-DURATIONS - om-cluster-rules Reference Documentation</title>
+<STYLE TYPE="text/css"><!--  
+
+BODY {background-color: #EEEEEE;
+	  font-family: Verdana;
+font-size: 12;
+color : #0000000;
+}
+
+A:link {text-decoration: underline; color : 333366;}
+A:visited {text-decoration: underline; color : 333366;}
+A:active {Verdana; text-decoration: underline; color:333366;}
+A:hover {Verdana; text-decoration: underline; color: 333366;}
+
+H1 {
+ color : #333333;
+ font-size: 18;
+ font-weight: bold
+ text-align: left;
+}
+	
+H2 {
+ color : #333333;
+ font-size: 16;
+ font-weight: bold;
+}
+
+H3 {
+ color : #444444;
+ font-size: 12;
+ font-weight: bold;
+}
+
+P,UL,LI, TD {	
+ font-size: 11;
+ text-indent: 0cm;
+ text-align: justify;
+}
+.right {text-align: right ;}
+.center {text-align: center ;}
+.top {text-align: top ;}
+   --></style>
+</head>
+<body bgcolor=BBBBBB>
+<br>
+<table align=center bgcolor=FFFFFF width=87%><tr>
+<td>
+<h2>SIMILAR-SIM-DURATIONS</h2>
+<font size=-1>[FUNCTION]</font><br><br>
+</td><td width=130>
+<img src=./omlogo.gif width=100><br>
+<font size=-2 align=right><a href=index.html>om-cluster-rules<br> Function Reference</a></font>
+</td></tr>
+<tr><td colspan=2>
+<font color=882222><b>ARGUMENTS:</b></font><br>
+<table width=100% border=0>
+<tr>
+<td>
+<i><b>&key</b></i><br>
+</td>
+<td colspan=3>&nbsp;</td></tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>voices</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>max-factor</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>rest-mode</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>rule-type</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>weight</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+</table>
+</tr>
+<tr><td colspan=2>
+<br><font color=882222><b>Description:</b></font><p>
+This rule restricts the maximum difference between simultaneous note durations. Together with the rule r-rhythm-hierarchy (from library cluster engine) this rule allows to enforce a homophonic texture and also almost homophonic textures. <br>
+<br>
+Note that grace notes are ignored by this rule.<br>
+<br>
+Args:<br>
+  voices (a list of ints): The list of voices affected by this constraint. The first given voice is used as a reference: notes of all other voices are compared to this voice. NOTE: if the reference voice is not the voice with the lowest number, then the search is slowed down.<br>
+  max-factor (a ratio): If max-factor is 1, then the simultaneous durations always have exactly the same duration (however, neither the size of the duration nor whether they start together is constrained). If max-factor is larger (or smaller) than one then this factor defines the largest possible quotient between simultaneous durations. For example, if max-factor is 2 then any note can be at most the double and at least halve of the simultaneous note (note that the rule behaves the same whether max-factor is 1/2 or 2).<br>
+  rest-mode: Whether or not to also constrain rests or not. If rests are constrained, then all simultaneous notes must be notes and simultaneous rests must be rests.<br>
+<br>
+Other args are inherited from R-rhythm-rhythm.<br>
+<br>
+BUG: Arg factor seemingly not fully working as documented yet if factor &gt; 1.<br>
+<br>
+</p><br><br></td></tr>
+<td class=center colspan=2>
+<center><font size=-2>Auto doc generation by OpenMusic 7.3 &copy 2023 IRCAM</font></center>
+</td></tr></table>
+</body></html>

@@ -1,0 +1,189 @@
+<html>
+<head><title>FOLLOW-TIMED-PROFILE-HR - om-cluster-rules Reference Documentation</title>
+<STYLE TYPE="text/css"><!--  
+
+BODY {background-color: #EEEEEE;
+	  font-family: Verdana;
+font-size: 12;
+color : #0000000;
+}
+
+A:link {text-decoration: underline; color : 333366;}
+A:visited {text-decoration: underline; color : 333366;}
+A:active {Verdana; text-decoration: underline; color:333366;}
+A:hover {Verdana; text-decoration: underline; color: 333366;}
+
+H1 {
+ color : #333333;
+ font-size: 18;
+ font-weight: bold
+ text-align: left;
+}
+	
+H2 {
+ color : #333333;
+ font-size: 16;
+ font-weight: bold;
+}
+
+H3 {
+ color : #444444;
+ font-size: 12;
+ font-weight: bold;
+}
+
+P,UL,LI, TD {	
+ font-size: 11;
+ text-indent: 0cm;
+ text-align: justify;
+}
+.right {text-align: right ;}
+.center {text-align: center ;}
+.top {text-align: top ;}
+   --></style>
+</head>
+<body bgcolor=BBBBBB>
+<br>
+<table align=center bgcolor=FFFFFF width=87%><tr>
+<td>
+<h2>FOLLOW-TIMED-PROFILE-HR</h2>
+<font size=-1>[FUNCTION]</font><br><br>
+</td><td width=130>
+<img src=./omlogo.gif width=100><br>
+<font size=-2 align=right><a href=index.html>om-cluster-rules<br> Function Reference</a></font>
+</td></tr>
+<tr><td colspan=2>
+<font color=882222><b>ARGUMENTS:</b></font><br>
+<table width=100% border=0>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>profile</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td>
+<i><b>&key</b></i><br>
+</td>
+<td colspan=3>&nbsp;</td></tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>voices</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>profile-duration</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>start</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>end</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>mode</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>constrain</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>gracenotes?</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>interpolate-score?</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<tr>
+<td width=40>&nbsp;</td>
+<td>
+- <font color=333366><b>weight-offset</b></font>
+</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+</table>
+</tr>
+<tr><td colspan=2>
+<br><font color=882222><b>Description:</b></font><p>
+Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile, taking the timing of the profile into account. For example, with profile-duration set to 2 the profile (a fenv) ranges from 0 to 2 so that the fenv describes a profile over 2 whole notes.<br>
+<br>
+Args:<br>
+- profile (a list of numbers, a fenv or -- when using Opusmodus -- an OMN sequence): Specifies the profile that should be followed. A list of numbers is translated into a fenv with equidistant points. If an OMN expression contains chords, then only the first chord note is extracted. If a list of profiles is specified, then these are used to constrain multiple given different voices. In this case, the number of profiles, and the number of specified voices to constrain must match.<br>
+<br>
+- voices (int or list of ints): The voice(s) to which the constraint is applied. If multiple profiles are given, then a different voice for each profile should be specified.<br>
+<br>
+- profile-duration (number): The overall duration of the profile. Even if the profile is specified as OMN expression with rhythmic values, by default the profile lasts for a whole tone (1/1) -- all rhythmic values are streched/shrinked accordingly. <br>
+<br>
+- start / end (number or list of numbers): At which time point to start / end applying this rule. A start time greater zero has the effect that the profile is shifted in time to start at the specified time. An end time smaller than the duration of the profile has the effect that the part of the profile behind the set end is cut off. If end is NIL (the default) then the full profile duration is used.<br>
+start and end can both also be a list of start/end values to specify different values for different voices.<br>
+<br>
+- mode: Select whether to constrain the rhythmic values (rhythm) or the pitches (pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.<br>
+<br>
+- constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.<br>
+<br>
+- interpolate-score? (only relevant if profile is an OMN expression): Specifies whether score pitches or durations should be hold for their whole duration in the profile (sample-and-hold format), or whether between these values should be interpolated (zick-zack format).<br>
+<br>
+- weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).<br>
+<br>
+Other arguments are inherited from hr-rhythm-pitch-one-voice.<br>
+<br>
+Note: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule.<br>
+<br>
+BUG:<br>
+A profile as OMN expression with leading rests not yet properly supported. <br>
+<br>
+</p><br><br></td></tr>
+<td class=center colspan=2>
+<center><font size=-2>Auto doc generation by OpenMusic 7.3 &copy 2023 IRCAM</font></center>
+</td></tr></table>
+</body></html>
