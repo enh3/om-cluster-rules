@@ -18,7 +18,7 @@
 (om::defmethod! no-voice-crossing ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1))
  :initvals '( (0 1) :all :true/false 1)
  :indoc '("voices-list"  "input-mode" "rule-type" "weight-number")
- :icon 01 ; THIS IS THE NUMBER OF THE QUESTION MARK ICON FOR OM
+ :icon 1 ; THIS IS THE NUMBER OF THE QUESTION MARK ICON FOR OM
  :menuins '( (1 (("all" :all) ("beat" :beat) ("1st-beat" :1st-beat) ("1st-voice" :1st-voice) ))
                     (2 (("true/false" :true/false) ("heur-switch" :heur-switch)) )
                  ) 
@@ -48,7 +48,7 @@ Arguments are inherited from Rpitch-pitch."
 (om::defmethod! no-parallels ((mode t) (intervals list) (voices list) &optional (rule-type :true/false) (weight 1)) ; <== removed the gracenotes?
  :initvals '( :open '(0 700) (0 1) :true/false 1) ; <== changed intervals to midicents and removed the gracenotes? initarg
  :indoc '("mode" "intervals-list" "voices-list" "rule-type" "weight-number") ; <== removed the gracenotes? indoc
- :icon 01
+ :icon 1
  :menuins '( (0 (("open" :open) ("open-and-hidden" :open-and-hidden)))  ;<== added the :menuins (the first element of each sublist <ex: "open"> is a string and the second will pass to the function as a :symbol)
                     (3 (("true/false" :true/false) ("heur-switch" :heur-switch)) ) )
  :doc "Parallels of given intervals are prohibited between all combinations of the given voices. Args: mode, intervals, voices.
