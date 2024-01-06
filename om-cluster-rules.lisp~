@@ -40,18 +40,20 @@
      rule::compose-functions
      ) nil)
 
-   ("Rhythm" Nil Nil (rule::no-two-consecutive-syncopations rule::no-syncopation 
-                                                            rule::only-simple-syncopations rule::only-simple-tuplet-offs
-                                                            rule::start-with-rest
-                                                            rule::metric-offset-of-motif rule::phrase-length
-                                                            rule::similar-sim-durations
-                                                            rule::metric-accents
-                                                            rule::accents-in-other-voice
-                                                            ) Nil)
-   ("Accent rules" Nil Nil (rule::mk-accent-has-at-least-duration-ar 
-                            rule::mk-accent->-prep-AND->=-dur-ar rule::mk-accent->-prep-OR->=-dur-ar
-                            rule::thomassen-accents rule::thomassen-accents-ar
-                            ) Nil)
+   ("Rhythm" 
+    (("Accent rules" Nil Nil (rule::mk-accent-has-at-least-duration-ar 
+                              rule::mk-accent->-prep-AND->=-dur-ar rule::mk-accent->-prep-OR->=-dur-ar
+                              rule::thomassen-accents rule::thomassen-accents-ar
+                              ) Nil))
+    Nil (rule::no-two-consecutive-syncopations rule::no-syncopation 
+                                               rule::only-simple-syncopations rule::only-simple-tuplet-offs
+                                               rule::start-with-rest
+                                               rule::metric-offset-of-motif rule::phrase-length
+                                               rule::similar-sim-durations
+                                               rule::metric-accents
+                                               rule::accents-in-other-voice
+                                               ) Nil)
+   
    ("Melody" Nil Nil (rule::min/max-interval 
                       rule::set-pitches rule::set-intervals rule::prefer-interval-hr 
                       rule::accumulative-interval

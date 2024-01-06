@@ -32,20 +32,9 @@ Strict profile rule: roughtly preserve intervals between local maxima. Argument 
 
 |#
 
-#|
-MY note (KH): assuminf that fenv is equivalent to bpf:
-(fe:fenv? my-profile) -> (om::bpf-p my-profile)
-(fe:list->fenv my-profile) -> (mk-bpf-from-y my-profile)
-(fenv:y fenv-profile (/ (- time1 my-start) profile-duration)) ;frmv-profile is a bpf
-(om::x-transfer fenv-profile (/ (- time1 my-start) profile-duration))
-|#
+
 
 (in-package :cluster-rules)
-
-(defun mk-bpf-from-y (list)
-  (om::simple-bpf-from-list 
-   (om::arithm-ser 0 (length list) 1)
-   list))
 
 
 ;; follow-timed-profile-hr
@@ -60,6 +49,14 @@ MY note (KH): assuminf that fenv is equivalent to bpf:
 	((= x1 x2) 1)
 	((> x1 x2) 0)))
 
+#+opusmodus
+(defun total-omn-duration (sequence)
+  "Returns the total duration (length) of `sequence', i.e. the sum of the length of all its notes and rests.
+
+  Example:
+  ;;; (total-duration '((h c4 q) (q h tie) (h.)))
+  ;;; => 9/4"
+  (reduce #'+ (mapcar #'abs (om:omn :length (om:flatten-omn sequence)))))
 
 
 ;; TODO:
@@ -125,9 +122,34 @@ A profile as OMN expression with leading rests not yet properly supported.
 		 (let ((fenv-profile 
 			;; process different inputs: list of int, BPF, score... 
 			(cond 
-			 ((_number-list? my-profile) (mk-bpf-from-y my-profile)) 
-			 ((om::bpf-p my-profile) my-profile)
-                         (T (error "Not a supported profile format: ~A" my-profile)))))	
+			 ((_number-list? my-profile) (fe:list->fenv my-profile)) 
+			 ((fe:fenv? my-profile) my-profile)
+			 #+opusmodus
+			 ((om:omn-formp my-profile)
+			  (let ((flat-omn (om:flatten (om:length-legato my-profile)))) 
+			    (funcall (case interpolate-score? 
+				       (:no #'fenv:constant-segements-fenv-fn)
+				       (:yes #'fenv:linear-fenv-fn)) 
+				     (list
+				      (tu:mat-trans
+				       ;; x values: note start times (skips the last end time)
+				       (let ((omn-dur (total-omn-duration flat-omn))) 
+					 (mapcar #'(lambda (x) (/ x omn-dur))
+						 (tu:dx->x (om:omn :length flat-omn) 0)))
+				       ;; y values
+				       (case mode
+					 (:pitch 
+					  (let ((pitches (mapcar #'(lambda (x) 
+								     (if (om:chordp x) 
+									 (first (last (om:melodize x)))
+								       x)) 
+								 (om:omn :pitch flat-omn))))
+					    (om:pitch-to-midi (append pitches (last pitches))))
+					  ;; use omn-encode to ensure numeric rhythmic values?
+					  (:rhythm 
+					   (let ((ls (om:omn :length flat-omn)))
+					     (append ls (last ls)))))))))))
+			 (T (error "Not a supported profile format: ~A" my-profile)))))	
 		   (flet ((profile-hr (curr-var time)
 				      "Defines core of profile heuristic. Essentially, returns the abs difference between current pitch/rhythm and the profile value at time."
 				      (if (and (not (null curr-var)) ; curr-var is not a rest
@@ -136,7 +158,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 						 (<= my-start time))
 					       (<= time profile-duration))
 					  ;; actual constraint: heuristic value is distance between curr-var and curr-fenv-val
-					  (let ((curr-fenv-val (om::x-transfer fenv-profile (/ (- time my-start) profile-duration))))
+					  (let ((curr-fenv-val (fenv:y fenv-profile (/ (- time my-start) profile-duration))))
 					    (- weight-offset
 					       (abs (- curr-var curr-fenv-val))))
 					;; otherwise no preference
@@ -150,8 +172,8 @@ A profile as OMN expression with leading rests not yet properly supported.
 								   (<= time2 my-end))
 							    (<= my-start time1))
 							  (<= time2 profile-duration))
-						     (let ((fenv-val1 (om::x-transfer fenv-profile (/ (- time1 my-start) profile-duration)))
-							   (fenv-val2 (om::x-transfer fenv-profile (/ (- time2 my-start) profile-duration))))
+						     (let ((fenv-val1 (fenv:y fenv-profile (/ (- time1 my-start) profile-duration)))
+							   (fenv-val2 (fenv:y fenv-profile (/ (- time2 my-start) profile-duration))))
 						       (- weight-offset
 							  (abs 
 							   (case constrain
@@ -160,11 +182,11 @@ A profile as OMN expression with leading rests not yet properly supported.
 									   (:pitch (- (- var1 var2)
 										      (- fenv-val1 fenv-val2)))
 									   ;; for rhythm distance is quotient not difference
-                                                                           ;;; TODO: unfinished for rhythm -- how to compute distance of distances?
+                                                      ;;; TODO: unfinished for rhythm -- how to compute distance of distances?
 									   (:rhythm (- (/ var1 var2)
 										       (/ fenv-val1 fenv-val2)))))
 							     ;; distance between directions of last two vals
-                                                             ;;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
+                                        ;;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
 							     (:directions (- (_direction-int var1 var2)
 									     (_direction-int fenv-val1 fenv-val2))))
 							   )))
@@ -211,8 +233,9 @@ A profile as OMN expression with leading rests not yet properly supported.
 	     (if (and (listp profile) 
 		      (every #'(lambda (x)
 				 (or 
+				  #+opusmodus (om:omn-formp x)
 				  (_number-list? x)
-				  (om::bpf-p x)))
+				  (fe:fenv? x)))
 			     profile))
                  profile
 	       (make-list voices-length :initial-element profile))
@@ -284,11 +307,24 @@ BUG: mode :rhythm not yet working.
 		(my-profile 
 		 ;; process different inputs: list of int, BPF, score... 
 		 (cond ((_number-list? profile) profile) 
-		       ((om::bpf-p profile)
+		       ((fe:fenv? profile)
 			(if (> n 0)  
-			    (om::first-n (om::y-points profile) n)
+			    (fenv:fenv->list profile n)
 			  (progn (warn "Cannot sample BPF with n set to 0") NIL)))
-                       (T (error "Not a supported profile format: ~A" profile))))
+		       #+opusmodus
+		       ((om:omn-formp profile)
+			(case mode
+			  (:pitch 
+			   (let ((flat-omn (om:omn-merge-ties 
+					    (om:flatten (om:length-legato profile)))))
+			     (om:pitch-to-midi
+			      (mapcar #'(lambda (x) 
+					  (if (om:chordp x) 
+					      (first (last (om:melodize x)))
+					    x)) 
+				      (om:omn :pitch flat-omn)))))
+			  (:rhythm (om:omn :length profile))))
+		       (T (error "Not a supported profile format: ~A" profile))))
 		(profile-length (length my-profile)))
 	   (funcall (case mode
 		      (:pitch #'hr-pitches-one-voice)
@@ -331,12 +367,13 @@ BUG: mode :rhythm not yet working.
 		    (case mode
 		      (:pitch :all-pitches)
 		      (:rhythm :list-with-all-durations)))))
-     (om::mat-trans
+     (tu:mat-trans
       (list (if (and (listp profiles) 
 		     (every #'(lambda (x)
 				(or 
-                                 (_number-list? x)
-				 (om::bpf-p x)))
+				 #+opusmodus (om:omn-formp x)
+				 (_number-list? x)
+				 (fe:fenv? x)))
 			    profiles))
 		profiles
 	      (make-list voices-length :initial-element profiles))
@@ -440,33 +477,30 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. factor is multiplied to the original value."
   #'(lambda (x) (* x factor)))
 
-
+#|
 (defun mp-add-random-offset (max-random-offset)
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. max-random-offset is the maximun random deviation, above or below the original value."
   #'(lambda (x) 
       (let ((abs-rnd-offset (abs max-random-offset)))
-	(+ x (om::om-random (* abs-rnd-offset -1) abs-rnd-offset)))))
+	(+ x (pw::g-random (* abs-rnd-offset -1) abs-rnd-offset)))))
 
 
 ;; Some transformation functions for pitch-profile-hr or rhythm-profile-hr
 
 (defun trfm-scale (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original values are scaled between min and max."
-  #'(lambda (xs) (om::om-scale xs min max)))
-
-
-;check out om-sample function
+  #'(lambda (xs) (pw::g-scaling xs min max)))
 
 (defun trfm-add-BPF (BPF)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. To each original value the corresponding BPF vcalue is added."
   #'(lambda (xs) 
-      (mapcar #'+ xs (om::om-sample BPF (length xs)))))
+      (mapcar #'+ xs (ccl::pwgl-sample BPF (length xs)))))
 
 (defun trfm-multiply-BPF (BPF)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. To each original value the corresponding BPF vcalue is multiplied."
   #'(lambda (xs) 
-      (mapcar #'* xs (om::om-sample BPF (length xs)))))
-
+      (mapcar #'* xs (ccl::pwgl-sample BPF (length xs)))))
+|#
 
 (defun trfm-reverse (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original value sequence is reversed."
@@ -550,13 +584,13 @@ max-interval (number, fenv or NIL): maximum interval in semitones. Ignored if NI
 n (int): The first n notes are affected. If 0, then n is disregarded. NOTE: if any fenv is set then make sure n is greater than 0.
 
 Args rule-type and weight inherited from r-pitches-one-voice."
-  (if (some #'om::bpf-p (list min-interval max-interval))	   
+  (if (some #'fenv:fenv? (list min-interval max-interval))	   
       ;; one or both intervals are fenv
       (flet ((make-intervals (min/max-interval)
 	       "Transforms fenv (or scalar) interval into list/array of interval numbers."	    
-	       (cond ((om::bpf-p min/max-interval)
+	       (cond ((fenv:fenv? min/max-interval)
 		      (if (> n 0)  
-			  (om::first-n (om::y-points min/max-interval) (1- n))
+			  (fenv:fenv->list min/max-interval (1- n))
 			  (progn (warn "Cannot sample fenv with n set to 0")
 				 NIL)))
 		     ((numberp min/max-interval) (make-list n :initial-element min/max-interval))

@@ -12,6 +12,17 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
+;; use :string-tools seems not to work
+(unless (find-package :ta-utilities)
+  (make-package :ta-utilities
+                :nicknames '(:ta-utils :tu)
+                :use '(:common-lisp)))
+
+(defpackage :fenv
+  (:nicknames :fe :fenv)
+  (:use :common-lisp))
+
+
 (require-library "Cluster-Engine")
 
 (defpackage :cluster-rules

@@ -7,11 +7,16 @@
 (mapc 'om::compile&load 
       (list
 	   ;all ta-utilities lisp files in order they appear in the original ta-utilities.asd file
-	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources" "ta-utilities")) :name "make-package" :type "lisp")
+	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "package" :type "lisp")
 	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources" "ta-utilities")) :name "my-utilities" :type "lisp")
 	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources" "ta-utilities")) :name "export" :type "lisp")
+	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "macros" :type "lisp")
+	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "fenv" :type "lisp")
+	  ; (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources" "ta-utilities")) :name "make-package" :type "lisp")
+	  ; (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources" "ta-utilities")) :name "my-utilities" :type "lisp")
+	  ; (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources" "ta-utilities")) :name "export" :type "lisp")
         ;all cluster-rules files in order they appear in :components in the original pwgl-cluster-rules.asd file (without the menus.lisp and export.lisp files, which is specific for PWGL)	 	   
-	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "package" :type "lisp")	
+	   ;(make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "package" :type "lisp")	
 	   (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "utils" :type "lisp")
            (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "rhythm-rules" :type "lisp")
            (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "melody-rules" :type "lisp")

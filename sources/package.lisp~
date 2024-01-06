@@ -12,11 +12,20 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
+(defpackage :fenv
+  (:nicknames :fe :fenv)
+  (:use :common-lisp))
+
+
+
+
+(require-library "Cluster-Engine")
+
 (defpackage :cluster-rules
   (:nicknames :rule)
   (:use :common-lisp :cluster-engine)) ;:pw <== there is no :pw package in OM))
 
-(require-library "Cluster-Engine")
+
 
 ;(eval-when (:execute :compile-toplevel :load-toplevel) <=== Specific for PWGL
 ;  (import '(ccl::PWGLdef ccl::patch-value ccl::PWGL-box ccl::nth-patch-value ccl::pwgl-outputs ccl::add-PWGL-user-menu)

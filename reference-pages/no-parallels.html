@@ -47,7 +47,7 @@ P,UL,LI, TD {
 <table align=center bgcolor=FFFFFF width=87%><tr>
 <td>
 <h2>NO-PARALLELS</h2>
-<font size=-1>[GENERIC-FUNCTION]</font><br><br>
+<font size=-1>[FUNCTION]</font><br><br>
 </td><td width=130>
 <img src=./omlogo.gif width=100><br>
 <font size=-2 align=right><a href=index.html>om-cluster-rules<br> Function Reference</a></font>
@@ -56,12 +56,18 @@ P,UL,LI, TD {
 <font color=882222><b>ARGUMENTS:</b></font><br>
 <table width=100% border=0>
 <tr>
+<td>
+<i><b>&key</b></i><br>
+</td>
+<td colspan=3>&nbsp;</td></tr>
+<tr>
+<tr>
 <td width=40>&nbsp;</td>
 <td>
 - <font color=333366><b>mode</b></font>
 </td>
-<td>mode</td>
-<td>[default = :open]</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 <tr>
 <tr>
@@ -69,8 +75,8 @@ P,UL,LI, TD {
 <td>
 - <font color=333366><b>intervals</b></font>
 </td>
-<td>intervals-list</td>
-<td>[default = (quote (0 700))]</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 <tr>
 <tr>
@@ -78,23 +84,26 @@ P,UL,LI, TD {
 <td>
 - <font color=333366><b>voices</b></font>
 </td>
-<td>voices-list</td>
-<td>[default = (0 1)]</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 <tr>
 <tr>
+<td width=40>&nbsp;</td>
 <td>
-<i><b>&optional</b></i><br>
+- <font color=333366><b>gracenotes?</b></font>
 </td>
-<td colspan=3>&nbsp;</td></tr>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
 <tr>
 <tr>
 <td width=40>&nbsp;</td>
 <td>
 - <font color=333366><b>rule-type</b></font>
 </td>
-<td>rule-type</td>
-<td>[default = :true/false]</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 <tr>
 <tr>
@@ -102,19 +111,23 @@ P,UL,LI, TD {
 <td>
 - <font color=333366><b>weight</b></font>
 </td>
-<td>weight-number</td>
-<td>[default = 1]</td>
+<td width=20%>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 <tr>
 </table>
 </tr>
 <tr><td colspan=2>
 <br><font color=882222><b>Description:</b></font><p>
-Parallels of given intervals are prohibited between all combinations of the given voices. Args: mode, intervals, voices.<br>
+Parallels of given intervals are prohibited between all combinations of the given voices.<br>
 <br>
-Arguments are inherited from Rpitch-pitch.<br>
+ Args:<br>
+   mode: Specifies whether only open or also hidden intervals should be avoided.<br>
+   intervals (list of ints): Specifies the intervals (as pitch classes) of of which parallels should be avoided. <br>
+<br>
+ Other arguments are inherited from r-pitch-pitch.<br>
 </p><br><br></td></tr>
 <td class=center colspan=2>
-<center><font size=-2>Auto doc generation by OpenMusic 7.3 &copy 2023 IRCAM</font></center>
+<center><font size=-2>Auto doc generation by OpenMusic 7.4 &copy 2024 IRCAM</font></center>
 </td></tr></table>
 </body></html>
