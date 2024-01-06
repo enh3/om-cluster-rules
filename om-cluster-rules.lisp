@@ -65,6 +65,8 @@
                       rule::no-direct-repetition rule::no-repetition 
                       rule::restrict-consecutive-directions rule::resolve-skips
                       rule::durations-control-intervals
+                      rule::follow-profile-hr
+                      rule::follow-timed-profile-hr
                       ) Nil)
    ("Harmony" Nil Nil (rule::only-scale-PCs 
                        rule::only-chord-PCs rule::only-spectrum-pitches 
