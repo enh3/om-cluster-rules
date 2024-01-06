@@ -20,7 +20,12 @@
 
 (defpackage :fenv
   (:nicknames :fe :fenv)
-  (:use :common-lisp))
+  (:use :common-lisp)
+  (:export :list->fenv
+           :fenv?
+           :y
+           :fenv->list
+           ))
 
 
 (require-library "Cluster-Engine")
