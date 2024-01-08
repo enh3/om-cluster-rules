@@ -32,9 +32,52 @@
 
 (defpackage :cluster-rules
   (:nicknames :rule)
-  (:use :common-lisp :cluster-engine)) ;:pw <== there is no :pw package in OM))
-
-
+  (:use :common-lisp) ;:cluster-engine)
+  (:import-from :cluster-engine ;added the :import-from (paulo)
+   :rules->cluster
+   :metric-domain 
+   :R-predefine-meter 
+   :Stop-rule-time 
+   :Stop-rule-index 
+   :preferences
+   :R-rhythms-one-voice 
+   :R-index-rhythms-one-voice 
+   :R-pitches-one-voice 
+   :R-index-pitches-one-voice 
+   :R-time-signatures 
+   :R-index-time-signatures 
+   :R-only-m-motifs 
+   :R-rhythms-one-voice-at-timepoints 
+   :HR-rhythms-one-voice 
+   :HR-index-rhythms-one-voice 
+   :HR-pitches-one-voice 
+   :HR-index-pitches-one-voice 
+   :HR-time-signatures 
+   :HR-index-time-signatures 
+   :R-pmc-one-voice 
+   :R-jbs-one-voice 
+   :set-end
+   :R-rhythm-pitch-one-voice 
+   :R-index-rhythm-pitch-one-voice 
+   :R-metric-hierarchy R-note-meter 
+   :R-meter-note  
+   :R-mel-interval-one-voice 
+   :HR-rhythm-pitch-one-voice 
+   :HR-index-rhythm-pitch-one-voice 
+   :HR-duration-meter HR-meter-duration
+   :R-rhythm-rhythm 
+   :R-rhythm-hierarchy 
+   :R-canon 
+   :HR-rhythm-rhythm
+   :R-pitch-pitch 
+   :R-chords 
+   :R-list-all-events 
+   :HR-pitch-pitch 
+   :HR-list-all-events
+   :apply-and 
+   :apply-minus)
+  ) ; :pw <== There is a :pw package in CE library (pw-common-language.lisp file)
+    ; We can use the :import-from if needed as well (paulo)
 
 ;(eval-when (:execute :compile-toplevel :load-toplevel) <=== Specific for PWGL
 ;  (import '(ccl::PWGLdef ccl::patch-value ccl::PWGL-box ccl::nth-patch-value ccl::pwgl-outputs ccl::add-PWGL-user-menu)
