@@ -32,7 +32,7 @@ Arguments are inherited from Rpitch-pitch."
        (rule (eval `#'(lambda (pitches) ;MOVED THE RULE HERE TO AVOID LEXICAL CLOSURES
                              (apply #'>= (remove NIL pitches))))))   ;; no rests -- no NILs
   (mappend #'(lambda (voice1 voice2)
-    (ce::R-pitch-pitch 
+    (R-pitch-pitch 
     rule ;<== THE VARIABLE RULE CREATED BY LET 
     voices
     '(0)
@@ -75,11 +75,12 @@ Arguments are inherited from Rpitch-pitch."
  					     T))))
  			      T)))))
    (map-pairwise #'(lambda (voice1 voice2)
-     (ce::Rpitch-pitch 
+     (r-pitch-pitch ;The r-pitch-pitch is the original CE function, not the OM method (paulo)
      rule			  
      (list voice1 voice2)
      '(0)
      :all
+     nil ;<== gracenotes?
      :pitch
      rule-type weight))
      voices)))
