@@ -20,6 +20,53 @@
 
 (in-package :cluster-rules)
 
+;;;;;;;;;;;;;;;
+;;; OM-VERSION
+
+;;;
+;;; General defs
+;;;
+
+;;;
+;;; Follow harmony rules 
+;;;
+
+(defun in-harmony? (pitches)
+  "The PC of (first pitches) is in the PCs of (second pitches). (first pitches) can be a chord."
+  (let ((voice-pitch (first pitches))
+	(scale-pitches (second pitches)))
+    (if (and voice-pitch (second pitches))  ; no rests
+	(let ((scale-pcs (mapcar #'(lambda (p) (mod p 1200))
+				 scale-pitches)))
+	  (every #'(lambda (p)
+		     (member (mod p 1200) scale-pcs))
+		 ;; handle both individual pitches and chords
+		 (tu:ensure-list voice-pitch)))
+	T)))
+
+(om::defmethod! only-scale-PCs
+  ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1) (scale-voice 0))
+  :initvals '((2) :all :true/false 1 0)
+  :indoc '("voices-list" "input-mode" "rule-type" "weight-number" "scale-voice")
+  :icon 1
+  :menuins '((1 (("all" :all) ("beat" :beat) ("1st-beat" :1st-beat) ("1st-voice" :1st-voice)))
+             (2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
+  :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). The chord can come from pitch-domain information, a harmony file, or constraints applied to the scale voice."
+  (let ((voice-list (if (listp voices) voices (list voices))))
+    (mapcar #'(lambda (voice)
+                (R-pitch-pitch #'in-harmony?
+                               (list voice scale-voice)
+                               '(0)
+                               input-mode
+                               nil ; gracenotes? removed
+                               :pitch
+                               rule-type
+                               weight))
+            voice-list)))
+
+;;;;;;;;;;;;;;;;;;
+;;; DEFUN VERSION
+
 ;;;
 ;;; General defs
 ;;;
@@ -36,6 +83,7 @@
 
 
 
+#|
 ;;;
 ;;; Follow harmony rules 
 ;;;
@@ -83,6 +131,7 @@ Other arguments are inherited from r-pitch-pitch."
 	  (if (listp voices) voices (list voices))))
 
 
+|#
 ;; only-chord-PCs
 
 (defun only-chord-PCs (&key
@@ -1050,5 +1099,4 @@ Music representation convention:
 				       weight)))
       ;; rule-type is (resolve-descending-progression &rest args), but first arg is 'resolve-descending-progression
       (apply #'resolve-descending-progression (append (rest rule-type) (list :n n)))))
-
 

@@ -81,7 +81,7 @@
                        rule::schoenberg-progression-rule rule::ascending-progression 
                        rule::resolve-descending-progression
                        ) Nil)
-   ("COUNTERPOINT" Nil Nil (rule::no-voice-crossing ;<== package-name-or-nickname::function-name
+   ("Counterpoint" Nil Nil (rule::no-voice-crossing ;<== package-name-or-nickname::function-name
                             rule::no-parallels
                             ) Nil)
    ("Utilities" Nil Nil (rule::scale->pitchdomain
