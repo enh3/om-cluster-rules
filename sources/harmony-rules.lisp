@@ -44,8 +44,13 @@
 		 (tu:ensure-list voice-pitch)))
 	T)))
 
-(om::defmethod! only-scale-PCs
-  ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1) (scale-voice 0))
+(defun log-to-file (msg &optional (file "/tmp/in-harmony-debug.log"))
+  (with-open-file (s file :direction :output :if-exists :append :if-does-not-exist :create)
+    (format s "~&~a~%" msg)))
+
+;;;This is not working yet. Seems that in-harmony? is returning true every time.
+
+(om::defmethod! only-scale-PCs ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1) (scale-voice 0))
   :initvals '((2) :all :true/false 1 0)
   :indoc '("voices-list" "input-mode" "rule-type" "weight-number" "scale-voice")
   :icon 1
@@ -54,11 +59,18 @@
   :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). The chord can come from pitch-domain information, a harmony file, or constraints applied to the scale voice."
   (let ((voice-list (if (listp voices) voices (list voices))))
     (mapcar #'(lambda (voice)
-                (R-pitch-pitch #'in-harmony?
+                ;; Print what is about to be passed to r-pitch-pitch
+                (print (list :only-scale-PCs voice scale-voice))
+                
+                ;; Optionally print pitch data if you have access to it here
+                ;; (print (list :pitch-data-voice voice (get-pitch-data-for-voice voice)))
+                ;; (print (list :pitch-data-scale-voice scale-voice (get-pitch-data-for-voice scale-voice)))
+                
+                (r-pitch-pitch #'in-harmony?
                                (list voice scale-voice)
                                '(0)
                                input-mode
-                               nil ; gracenotes? removed
+                               nil ; gracenotes? not available in OM
                                :pitch
                                rule-type
                                weight))
@@ -130,8 +142,8 @@ Other arguments are inherited from r-pitch-pitch."
 			     rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
-
 |#
+
 ;; only-chord-PCs
 
 (defun only-chord-PCs (&key

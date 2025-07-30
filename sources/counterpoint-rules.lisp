@@ -12,7 +12,7 @@
 
 (in-package :cluster-rules)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;
 ;;; OM-VERSION
 
 (om::defmethod! no-voice-crossing ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1))
