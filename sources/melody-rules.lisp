@@ -43,12 +43,13 @@ Strict profile rule: roughtly preserve intervals between local maxima. Argument 
   :icon 1
   :menuins '( (1 (("true/false" :true/false) ("heur-switch" :heur-switch) )))
   :doc "Disallows any direct pitch or chord repetition. 
+
 Voices: the number(s) of the voice(s) to constrain."
 
 (let ((rule (eval `#'(lambda (p1 p2)
        (if (and p1 p2) ; no rests
            (not (equal p1 p2))
-           t)))))
+           T)))))
   (R-pitches-one-voice
    rule
    voices

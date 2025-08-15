@@ -54,23 +54,16 @@
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch)) ) )
   :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). The chord can come from pitch-domain information, a harmony file, or constraints applied to the scale voice."
 
-  (let ((voice-list (if (listp voices) voices (list voices))))
-    (mapcar #'(lambda (voice)
-                ;; Print what is about to be passed to r-pitch-pitch
-                (print (list :only-scale-PCs voice scale-voice))
-                
-                ;; Optionally print pitch data if you have access to it here
-                ;; (print (list :pitch-data-voice voice (get-pitch-data-for-voice voice)))
-                ;; (print (list :pitch-data-scale-voice scale-voice (get-pitch-data-for-voice scale-voice)))
-                
-  (R-pitch-pitch #'in-harmony?
+  (mapcar #'(lambda (voice)            
+  (R-pitch-pitch 
+    #'in-harmony?
     (list voice scale-voice)
     '(0)
     input-mode
     nil ; gracenotes? not available in OM
     :pitch
     rule-type weight))
-    voice-list)))
+    (if (listp voices) voices (list voices))))
 
 ;;;;;;;;;;;;;;;;;;
 ;;; DEFUN VERSION
