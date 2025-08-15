@@ -37,25 +37,23 @@ Strict profile rule: roughtly preserve intervals between local maxima. Argument 
 
 (in-package :cluster-rules)
 
-;;;Attempted porting. Still not working.
-
 (om::defmethod! no-direct-repetition ((voices list) &optional (rule-type :true/false) (weight 1))
   :initvals '(0 :true/false 1)
   :indoc '("Voice number" "Rule type" "Weight")
   :icon 1
-  :menuins '((1 (("true/false" :true/false) 
-                ("heur-switch" :heur-switch))))
-  :doc "Disallows any direct pitch or chord repetition."
+  :menuins '( (1 (("true/false" :true/false) ("heur-switch" :heur-switch) )))
+  :doc "Disallows any direct pitch or chord repetition. 
+Voices: the number(s) of the voice(s) to constrain."
 
-  (let ((rule (eval `#'(lambda (p1 p2)
-                         (if (and p1 p2)
-                             (not (equal p1 p2))
-                           T)))))
-    (r-pitches-one-voice 
-     rule
-     voices
-     :pitches
-     rule-type weight)))
+(let ((rule (eval `#'(lambda (p1 p2)
+       (if (and p1 p2) ; no rests
+           (not (equal p1 p2))
+           t)))))
+  (R-pitches-one-voice
+   rule
+   voices
+   :pitches
+   rule-type weight)))
 
 ;;;;;;;;;;;;;;;;;;
 ;;; DEFUN VERSION
