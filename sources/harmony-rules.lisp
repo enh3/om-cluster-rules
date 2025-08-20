@@ -46,8 +46,6 @@
 		 (tu:ensure-list voice-pitch)))
 	T)))
 
-;;;This is not working yet. Seems that in-harmony? is returning true every time.
-
 (om::defmethod! only-scale-PCs ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1) (scale-voice 0))
   :initvals '((2) :all :true/false 1 0)
   :indoc '("voices-list" "input-mode" "rule-type" "weight-number" "scale-voice")
@@ -56,7 +54,7 @@
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch)) ) )
   :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). The chord can come from pitch-domain information, a harmony file, or constraints applied to the scale voice."
 
-  (mapcar #'(lambda (voice)            
+  (mapcan #'(lambda (voice)            
   (R-pitch-pitch 
     #'in-harmony?
     (list voice scale-voice)
