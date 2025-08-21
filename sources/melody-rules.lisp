@@ -38,8 +38,8 @@ Strict profile rule: roughtly preserve intervals between local maxima. Argument 
 (in-package :cluster-rules)
 
 (om::defmethod! no-direct-repetition ((voices list) &optional (rule-type :true/false) (weight 1))
-  :initvals '(0 :true/false 1)
-  :indoc '("Voice number" "Rule type" "Weight")
+  :initvals '((0) :true/false 1)
+  :indoc '("voices" "rule-type" "weight")
   :icon 1
   :menuins '( (1 (("true/false" :true/false) ("heur-switch" :heur-switch) )))
   :doc "Disallows any direct pitch or chord repetition. 
