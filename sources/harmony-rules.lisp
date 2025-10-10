@@ -46,18 +46,39 @@
 		 (tu:ensure-list voice-pitch)))
 	T)))
 
+
 (om::defmethod! only-scale-PCs ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1) (scale-voice 0))
-  :initvals '((2) :all :true/false 1 0)
+  :initvals '((1) :all :true/false 1 0)
   :indoc '("voices-list" "input-mode" "rule-type" "weight-number" "scale-voice")
   :icon 1
   :menuins '( (1 (("all" :all) ("beat" :beat) ("1st-beat" :1st-beat) ("1st-voice" :1st-voice)))
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch)) ) )
-  :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). The chord can come from pitch-domain information, a harmony file, or constraints applied to the scale voice."
+  :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). The chord can come from pitch-domain information, or constraints applied to the scale voice."
 
   (mapcan #'(lambda (voice)            
   (R-pitch-pitch 
     #'in-harmony?
     (list voice scale-voice)
+    '(0)
+    input-mode
+    nil ; gracenotes? not available in OM
+    :pitch
+    rule-type weight))
+    (if (listp voices) voices (list voices))))
+
+
+(om::defmethod! only-chord-PCs ((voices list) (input-mode t) &optional (rule-type :true/false) (weight 1) (chord-voice 1))
+  :initvals '((2) :all :true/false 1 1)
+  :indoc '("voices-list" "input-mode" "rule-type" "weight-number" "chord-voice")
+  :icon 1
+  :menuins '( (1 (("all" :all) ("beat" :beat) ("1st-beat" :1st-beat) ("1st-voice" :1st-voice)))
+             (2 (("true/false" :true/false) ("heur-switch" :heur-switch)) ) )
+  :doc "Tones (PC) in the given voice must be a member of the underlying chord (its PCs). The chord is represented as a simultaneous chord in another voice (voice 1 by default). The chord can come from pitch-domain information, or constraints applied to the chord voice."
+
+  (mapcan #'(lambda (voice)            
+  (R-pitch-pitch 
+    #'in-harmony?
+    (list voice chord-voice)
     '(0)
     input-mode
     nil ; gracenotes? not available in OM
@@ -131,8 +152,6 @@ Other arguments are inherited from r-pitch-pitch."
 			     rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
-|#
-
 ;; only-chord-PCs
 
 (defun only-chord-PCs (&key
@@ -160,6 +179,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 			     :pitch
 			     rule-type weight))
 	  (if (listp voices) voices (list voices))))
+|#
 
 
 (defun in-spectrum? (pitches)

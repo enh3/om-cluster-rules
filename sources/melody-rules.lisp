@@ -46,12 +46,12 @@ Strict profile rule: roughtly preserve intervals between local maxima. Argument 
 
 Voices: the number(s) of the voice(s) to constrain."
 
-(let ((rule
-       (ce::fix-ompatch-rule 
-             (lambda (p1 p2)
-              (if (and p1 p2) ; no rests
-                  (not (equal p1 p2))
-                  T)))))
+  (let ((rule
+         (ce::fix-ompatch-rule 
+               (lambda (p1 p2)
+                (if (and p1 p2) ; no rests
+                    (not (equal p1 p2))
+                    T)))))
   (R-pitches-one-voice
    rule
    voices
