@@ -33,15 +33,15 @@ Arguments are inherited from Rpitch-pitch."
                                (apply #'>= (remove NIL pitches))))))   ;; no rests -- no NILs
   (mappend #'(lambda (voice1 voice2)
     (R-pitch-pitch 
-    rule ;<== THE VARIABLE RULE CREATED BY LET 
-    voices
-    '(0)
-    input-mode 
-    nil ;<==  gracenotes?: no grace-notes available in OM
-    :pitch
-    rule-type weight))
-    (butlast sorted-voices) 
-    (rest sorted-voices))))
+      rule ;<== THE VARIABLE RULE CREATED BY LET 
+      voices
+      '(0)
+      input-mode 
+      nil ;<==  gracenotes?: no grace-notes available in OM
+      :pitch
+      rule-type weight))
+      (butlast sorted-voices) 
+      (rest sorted-voices))))
 
 ;; no-parallels
 
@@ -76,14 +76,14 @@ Arguments are inherited from Rpitch-pitch."
  			      T)))))
   (map-pairwise #'(lambda (voice1 voice2)
     (r-pitch-pitch ;The r-pitch-pitch is the original CE function, not the OM method (paulo)
-    rule			  
-    (list voice1 voice2)
-    '(0)
-    :all
-    nil ;<== gracenotes?
-    :pitch
-    rule-type weight))
-    voices)))
+      rule			  
+      (list voice1 voice2)
+      '(0)
+      :all
+      nil ;<== gracenotes?
+      :pitch
+      rule-type weight))
+      voices)))
 
 #|
 ;;;;;;;;;;;;;;;;;;

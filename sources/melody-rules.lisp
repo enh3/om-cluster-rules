@@ -53,10 +53,10 @@ Voices: the number(s) of the voice(s) to constrain."
                     (not (equal p1 p2))
                     T)))))
   (R-pitches-one-voice
-   rule
-   voices
-   :pitches
-   rule-type weight)))
+    rule
+    voices
+    :pitches
+    rule-type weight)))
 
 ;;;;;;;;;;;;;;;;;;
 ;;; DEFUN VERSION
