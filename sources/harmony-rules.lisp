@@ -35,8 +35,6 @@
   "The PC of (first pitches) is in the PCs of (second pitches). (first pitches) can be a chord."
   (let ((voice-pitch (first pitches))
 	(scale-pitches (second pitches)))
-   (print voice-pitch)
-   (print scale-pitches)
     (if (and voice-pitch (second pitches))  ; no rests
 	(let ((scale-pcs (mapcar #'(lambda (p) (/ (mod p 1200) 100)) ;should divide by 100 to get pcs from midics
 				 scale-pitches)))
