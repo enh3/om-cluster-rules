@@ -127,6 +127,40 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
       rule-type weight))
       (if (listp voices) voices (list voices))))
 
+(om::defmethod! long-notes-chord-PCs ((voices list) (max-nonharmonic-dur number) &optional (rule-type :true/false) (weight 1) (chord-voice 1))
+  :initvals '((2) 1 :true/false 1 1)
+  :indoc '("voices-list" "max-duration-number" "rule-type" "weight-number" "chord-voice")
+  :icon 1
+  :menuins '( (2 (("true/false" :true/false) ("heur-switch" :heur-switch)) ) )
+  :doc "Every note in the given voice(s) with a duration exceeding max-nonharmonic-dur (on any metric position) must be a harmonic tone: the PC of such notes must be a member of the underlying chord (its PCs). The chord is represented as a simultaneous chord in another voice (voice 1 by default).
+
+Args: 
+voices (list): the voice(s) to which this constraint is applied.
+max-nonharmonic-dur (number): the maximum duration for which non-harmonic pitches are permitted.
+
+Optional args:
+chord-voice (int, default 1): the voice representing the underlying chord."
+
+  (let ((rule (ce::fix-ompatch-rule 
+               (eval `#'(lambda (p_d_offs)
+                 (destructuring-bind ((pitch1 dur1 offs1) (pitch2 dur2 offs2)) p_d_offs
+                   (if (and (and pitch1 pitch2) ;; no rests
+                            (> dur1 ,max-nonharmonic-dur)) ;; main condition
+                       (member (mod pitch1 1200)  ; changed to 1200 for midicents
+                               (mapcar #'(lambda (p) (mod p 1200))  ; changed to 1200 for midicents
+                                       pitch2))					    
+                       T)))))))
+    (mapcan #'(lambda (voice)            
+      (R-pitch-pitch 
+        rule
+        (list voice chord-voice)
+        '(0)
+        :all  
+        nil   ; gracenotes? not available in OM
+        :p_d_offs  ; Using duration domain
+        rule-type weight))
+        (if (listp voices) voices (list voices)))))
+
 ;;;;;;;;;;;;;;;;;;
 ;;; DEFUN VERSION
 
@@ -232,6 +266,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 	  (member ps1 ps2))
 	T)))
 
+
 (defun only-spectrum-pitches (&key
 				(voices 2)
 				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
@@ -259,9 +294,6 @@ This rule is very similar to only-chord-PCs, but instead of pitch classes absolu
 			     :pitch
 			     rule-type weight))
 	  (if (listp voices) voices (list voices))))
-
-|#
-
 
 (defun long-notes-chord-PCs (&key
 			       (voices 2)
@@ -298,6 +330,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 			     rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
+|#
 
 ;; chord-tone-before/after-rest
 
