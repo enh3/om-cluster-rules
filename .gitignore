@@ -2,9 +2,11 @@
 *.lisp~
 *.*~
 *.xfasl
-*.64xfasl
 *.ofasl
 *.*ufasl
+*.64xfasl
+*.64ufasl
+*.64ofasl
 #*#
 *.tex~
 *.out

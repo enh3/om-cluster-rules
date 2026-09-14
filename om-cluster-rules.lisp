@@ -1,5 +1,9 @@
 (in-package :om)
 
+;; CLUSTER-RULES imports symbols from the Cluster-Engine package while
+;; compiling sources/package.lisp, so the dependency must already be loaded.
+(require-library "Cluster-Engine")
+
 ;--------------------------------------------------
 ;Loading files 
 ;--------------------------------------------------
@@ -21,7 +25,8 @@
            (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "rhythm-rules" :type "lisp")
            (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "melody-rules" :type "lisp")
            (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "harmony-rules" :type "lisp")
-           (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "counterpoint-rules" :type "lisp")	   
+           (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "counterpoint-rules" :type "lisp")
+           (make-pathname  :directory (append (pathname-directory *load-pathname*) (list "sources")) :name "om-interface" :type "lisp")
        ))
 
 ; using "make-pathname" and *load-pathname*, allow us to put our library anywhere
@@ -32,65 +37,89 @@
 ; ("sub-pack-name" subpack-lists class-list function-list class-alias-list)
 ;--------------------------------------------------
 
-(om::fill-library 
- ;;; the structure of the menu is defined in the original menus.lisp file
- '(("Profile"    
-    (("Mappings" nil nil (rule::mp-add-offset rule::mp-multiply rule::mp-add-random-offset) nil)
-     ("Transformations" nil nil (rule::trfm-scale rule::trfm-add-BPF rule::trfm-multiply-BPF rule::trfm-reverse) nil))
+(om::fill-library
+ '(("Profile"
+    (("Mappings" nil nil
+      (om-cr::mp-add-offset om-cr::mp-multiply om-cr::mp-add-random-offset) nil)
+     ("Transformations" nil nil
+      (om-cr::trfm-scale om-cr::trfm-add-bpf om-cr::trfm-multiply-bpf om-cr::trfm-reverse) nil))
     nil
-    (rule::follow-timed-profile-hr
-     rule::follow-profile-hr
-        ; rule::follow-interval-profile
-        ; rule::rhythm-profile-BPF-hr
-     rule::compose-functions
-     ) nil)
+    (om-cr::follow-timed-profile-hr
+     om-cr::follow-profile-hr
+     om-cr::follow-interval-profile
+     om-cr::rhythm-profile-bpf-hr
+     om-cr::compose-functions)
+    nil)
 
-   ("Rhythm" 
-    (("Accent rules" Nil Nil (rule::mk-accent-has-at-least-duration-ar 
-                              rule::mk-accent->-prep-AND->=-dur-ar rule::mk-accent->-prep-OR->=-dur-ar
-                              rule::thomassen-accents rule::thomassen-accents-ar
-                              ) Nil))
-    Nil (rule::no-two-consecutive-syncopations rule::no-syncopation 
-                                               rule::only-simple-syncopations rule::only-simple-tuplet-offs
-                                               rule::start-with-rest
-                                               rule::metric-offset-of-motif rule::phrase-length
-                                               rule::similar-sim-durations
-                                               rule::metric-accents
-                                               rule::accents-in-other-voice
-                                               ) Nil)
-   
-   ("Melody" Nil Nil (rule::min/max-interval 
-                      rule::set-pitches rule::set-intervals rule::prefer-interval-hr 
-                      rule::accumulative-interval
-                      rule::no-direct-repetition rule::no-repetition 
-                      rule::restrict-consecutive-directions rule::resolve-skips
-                      rule::durations-control-intervals
-                      rule::follow-profile-hr
-                      rule::follow-timed-profile-hr
-                      ) Nil)
-   ("Harmony" Nil Nil (rule::only-scale-PCs 
-                       rule::only-chord-PCs rule::only-spectrum-pitches 
-                       rule::long-notes-chord-PCs rule::chord-tone-before/after-rest
-                       rule::chord-PC-at-1st-tone-HACK rule::stepwise-non-chord-tone-resolution 
-                       rule::chord-tone-follows-non-chord-tone
-                       rule::unequal-sim-PCs rule::number-of-sim-PCs rule::set-harmonic-intervals 
-                       rule::min/max-harmonic-interval
-                       rule::tintinnabuli-M-voice rule::tintinnabuli-T-voice
-                       rule::set-chord-at-positions rule::set-root-at-positions
-                       rule::limit-voice-leading-distance
-                       rule::schoenberg-progression-rule rule::ascending-progression 
-                       rule::resolve-descending-progression
-                       ) Nil)
-   ("Counterpoint" Nil Nil (rule::no-voice-crossing ;<== package-name-or-nickname::function-name
-                            rule::no-parallels
-                            ) Nil)
-   ("Utilities" Nil Nil (rule::scale->pitchdomain
-			 rule::file-in-this-directory 
-                         rule::read-lisp-file 
-                         rule::map-pairwise
-                         rule::mappend
-                         ) Nil)
-   
-   ))
+   ("Rhythm"
+    (("Accent rules" nil nil
+      (om-cr::mk-accent-has-at-least-duration-ar
+       om-cr::mk-accent->-prep-and->=-dur-ar
+       om-cr::mk-accent->-prep-or->=-dur-ar
+       om-cr::thomassen-accents
+       om-cr::thomassen-accents-ar) nil))
+    nil
+    (om-cr::no-two-consecutive-syncopations
+     om-cr::no-syncopation
+     om-cr::no-syncopation-unless-accented
+     om-cr::only-simple-syncopations
+     om-cr::only-simple-tuplet-offs
+     om-cr::start-with-rest
+     om-cr::metric-offset-of-motif
+     om-cr::phrase-length
+     om-cr::similar-sim-durations
+     om-cr::metric-accents
+     om-cr::accents-in-other-voice)
+    nil)
 
+   ("Melody" nil nil
+    (om-cr::min/max-interval
+     om-cr::set-pitches
+     om-cr::set-intervals
+     om-cr::prefer-interval-hr
+     om-cr::accumulative-interval
+     om-cr::no-direct-repetition
+     om-cr::no-repetition
+     om-cr::restrict-consecutive-directions
+     om-cr::resolve-skips
+     om-cr::durations-control-intervals
+     om-cr::follow-profile-hr
+     om-cr::follow-timed-profile-hr)
+    nil)
 
+   ("Harmony" nil nil
+    (om-cr::only-scale-pcs
+     om-cr::only-chord-pcs
+     om-cr::only-spectrum-pitches
+     om-cr::long-notes-chord-pcs
+     om-cr::chord-tone-before/after-rest
+     om-cr::chord-pc-at-1st-tone-hack
+     om-cr::stepwise-non-chord-tone-resolution
+     om-cr::chord-tone-follows-non-chord-tone
+     om-cr::unequal-sim-pcs
+     om-cr::number-of-sim-pcs
+     om-cr::set-harmonic-intervals
+     om-cr::min/max-harmonic-interval
+     om-cr::tintinnabuli-m-voice
+     om-cr::tintinnabuli-t-voice
+     om-cr::set-chord-at-positions
+     om-cr::set-root-at-positions
+     om-cr::limit-voice-leading-distance
+     om-cr::schoenberg-progression-rule
+     om-cr::ascending-progression
+     om-cr::resolve-descending-progression)
+    nil)
+
+   ("Counterpoint" nil nil
+    (om-cr::no-voice-crossing
+     om-cr::no-parallels)
+    nil)
+
+   ("Utilities" nil nil
+    (om-cr::scale->pitchdomain
+     om-cr::file-in-this-directory
+     om-cr::read-lisp-file
+     om-cr::pprint-to-file
+     om-cr::map-pairwise
+     om-cr::mappend)
+    nil)))

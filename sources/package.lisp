@@ -85,3 +85,9 @@
 
 
 
+
+
+;;; OpenMusic visual interface package
+(defpackage :om-cluster-rules
+  (:nicknames :om-cr)
+  (:use :common-lisp))
