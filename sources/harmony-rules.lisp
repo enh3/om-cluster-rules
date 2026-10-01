@@ -622,7 +622,7 @@ voices (int or list of ints): the number of the voice(s) to constrain.
 Optional:
 max-interval (default 2): maximum interval in semitones.
 scale-voice (default 0): the voice representing the underlying scale."
-  (rules->cluster 
+  (ce::rules-to-cluster 
    (min/max-interval voices :max-interval max-interval :rule-type rule-type :weight weight)
    (only-scale-PCs voices :all :include-gracenotes rule-type weight scale-voice)))
 
@@ -642,7 +642,7 @@ Key args:
 min-interval (default 3): minimum interval in semitones.
 max-interval (default 12): maximum interval in semitones.
 chord-voice (default 1): the voice representing the underlying chord."
-  (rules->cluster 
+  (ce::rules-to-cluster 
    (min/max-interval voices :min-interval min-interval :max-interval max-interval :rule-type rule-type :weight weight)
    (only-chord-PCs voices :all :include-gracenotes rule-type weight chord-voice)))
 

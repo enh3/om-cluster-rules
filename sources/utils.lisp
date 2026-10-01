@@ -16,6 +16,197 @@
 
 ;; (setf ccl::*pwgl-print-max-chars* 1000)
 
+;;; ---------------------------------------------------------------------------
+;;; Lambda-list introspection that tolerates lexical closures.
+;;;
+;;; OM 8.0 runs on LispWorks. Cluster Engine introspects every rule function it
+;;; receives via CLUSTER-ENGINE::FUNCTION-LAMBDA-LIST, which calls
+;;; CCL::FUNCTION-LAMBDA-LIST (the CCL-compat shim). For a lexical closure that
+;;; shim signals "~S is a lexical closure." -- and Cluster Rules passes closures
+;;; (lambdas capturing the rule's options) to CE rule applicators such as
+;;; R-NOTE-METER, R-METER-NOTE and R-RHYTHM-RHYTHM. TU:ARGLIST (used in
+;;; rhythm-rules.lisp to compute a rule's arity) can fail the same way.
+;;;
+;;; Fix: capture the original functions first, then install a tolerant version on
+;;; BOTH CLUSTER-ENGINE::FUNCTION-LAMBDA-LIST and CCL::FUNCTION-LAMBDA-LIST, so
+;;; every caller (present and future) benefits. Several introspection strategies
+;;; are tried before giving up.
+;;; ---------------------------------------------------------------------------
+
+;;; ---------------------------------------------------------------------------
+;;; Diagnostic file logging.
+;;;
+;;; The OM Listener shows neither printed output nor box-evaluation backtraces,
+;;; so all diagnostics are appended to a log file instead.
+;;; ---------------------------------------------------------------------------
+
+(defvar *cr-debug-log*
+  (let* ((here *load-pathname*)
+         (dir (and here (pathname-directory here))))
+    (if (and dir (equal (car (last dir)) "sources"))
+        (merge-pathnames "debug.log"
+                         (make-pathname :directory (butlast dir) :defaults here))
+        (merge-pathnames "om-cluster-rules-debug.log" (user-homedir-pathname))))
+  "File that receives all Cluster Rules diagnostics (append-only).")
+
+(defun cr-log (fmt &rest args)
+  "Append a timestamped line to *CR-DEBUG-LOG*. Never signals."
+  (ignore-errors
+    (with-open-file (s *cr-debug-log* :direction :output
+                                      :external-format :utf-8
+                                      :if-exists :append
+                                      :if-does-not-exist :create)
+      (multiple-value-bind (sec min hour date month year) (get-decoded-time)
+        (format s "~D-~2,'0D-~2,'0D ~2,'0D:~2,'0D:~2,'0D "
+                year month date hour min sec))
+      (apply #'format s fmt args)
+      (terpri s)
+      (finish-output s))))
+
+(defun cr-log-backtrace (&optional (header "Backtrace:"))
+  "Append a LispWorks backtrace of the current stack to *CR-DEBUG-LOG*."
+  (cr-log "~A" header)
+  (let* ((v1 (ignore-errors
+               (with-output-to-string (out)
+                 (dbg:output-backtrace :verbose :stream out))))
+         (v2 (ignore-errors
+               (with-output-to-string (out)
+                 (dbg:output-backtrace t out))))
+         (bt (cond ((and v1 (plusp (length v1))) v1)
+                   ((and v2 (plusp (length v2))) v2)
+                   (t (format nil "<backtrace unavailable> ~S ~S" v1 v2)))))
+    (cr-log "~A" bt)))
+
+(defmacro with-cr-error-log ((name) &body body)
+  "Evaluate BODY, logging NAME and a backtrace of the failing stack to
+*CR-DEBUG-LOG* if an error occurs. Uses HANDLER-BIND, which runs before the
+stack unwinds, and does not transfer control, so the original error still
+propagates unchanged after being logged."
+  (let ((err (gensym "ERR")))
+    `(handler-bind
+         ((error (lambda (,err)
+                   (cr-log "ERROR in ~A: ~A" ,name ,err)
+                   (cr-log-backtrace (format nil "Backtrace for ~A:" ,name)))))
+       (cr-log "entering ~A" ,name)
+       ,@body)))
+
+(defvar *orig-ccl-function-lambda-list*
+  (let* ((pkg (find-package "CCL"))
+         (sym (and pkg (find-symbol "FUNCTION-LAMBDA-LIST" pkg))))
+    (and sym (fboundp sym) (symbol-function sym)))
+  "Original CCL-compat function (fails on lexical closures), captured before redefinition.")
+
+(defvar *orig-lw-function-lambda-list*
+  #+lispworks (and (fboundp 'lw:function-lambda-list)
+                   (symbol-function 'lw:function-lambda-list))
+  #-lispworks nil
+  "Original LW:FUNCTION-LAMBDA-LIST, captured as a fallback strategy.")
+
+(defun cr-lambda-list (fn)
+  "Return the lambda list of FN, tolerating lexical closures. Tries the original
+CCL-compat function first, then CL:FUNCTION-LAMBDA-EXPRESSION, then
+LW:FUNCTION-LAMBDA-LIST. Signals an error only if all strategies fail."
+  (cr-log "cr-lambda-list: ~S | function-lambda-expression: ~S"
+          fn (ignore-errors (cl:function-lambda-expression fn)))
+  (dolist (probe (list (cons :orig-ccl-shim
+                             (lambda () (funcall *orig-ccl-function-lambda-list* fn)))
+                       (cons :cl-function-lambda-expression
+                             (lambda ()
+                               (let ((exp (cl:function-lambda-expression fn)))
+                                 (if (and (consp exp) (eq (first exp) 'lambda))
+                                     (second exp)
+                                     (error "no lambda expression available")))))
+                       (cons :lw-function-lambda-list
+                             (lambda () (funcall *orig-lw-function-lambda-list* fn)))))
+    (let ((res (handler-case (funcall (cdr probe))
+                 (error (e)
+                   (cr-log "  probe ~S failed: ~A" (car probe) e)
+                   :cr-introspect-failed))))
+      (unless (eq res :cr-introspect-failed)
+        (cr-log "  probe ~S -> ~S" (car probe) res)
+        (return-from cr-lambda-list res))))
+  (cr-log "ALL PROBES FAILED for ~S" fn)
+  (cr-log-backtrace "Backtrace of failed cr-lambda-list:")
+  (error "Cannot determine the lambda list of ~S" fn))
+
+(defun cluster-engine::function-lambda-list (fn)
+  "Return the lambda list of FN, tolerating lexical closures (the original
+implementation signals \"is a lexical closure\" for them)."
+  (cr-lambda-list fn))
+
+;; Install the tolerant version on the CCL-compat entry point as well, so that
+;; direct callers of CCL::FUNCTION-LAMBDA-LIST are covered too.
+(defvar *ccl-shim-status*
+  (handler-case
+      (let* ((pkg (find-package "CCL"))
+             (sym (and pkg (find-symbol "FUNCTION-LAMBDA-LIST" pkg))))
+        (cond ((null pkg) :no-ccl-package)
+              ((null sym) :no-function-lambda-list-symbol)
+              (t (let ((was-fbound (fboundp sym)))
+                   (setf (symbol-function sym)
+                         (lambda (fn) (cr-lambda-list fn)))
+                   (if was-fbound :replaced-existing :installed-new)))))
+    (error (e)
+      (cr-log "CCL FUNCTION-LAMBDA-LIST install failed: ~A" e)
+      :install-error))
+  "Status of installing the tolerant version on CCL::FUNCTION-LAMBDA-LIST.")
+
+;; Wrap LW:FUNCTION-LAMBDA-LIST so that any caller passing a closure gets a
+;; logged error with a backtrace (silent failures were impossible to diagnose).
+(defvar *lw-shim-wrapped*
+  #+lispworks
+  (handler-case
+      (if (fboundp 'lw:function-lambda-list)
+          (progn
+            (setf (symbol-function 'lw:function-lambda-list)
+                  (lambda (fn)
+                    (handler-case (funcall *orig-lw-function-lambda-list* fn)
+                      (error (e)
+                        (cr-log "ERROR in lw:function-lambda-list: ~A" e)
+                        (cr-log-backtrace "Backtrace of lw:function-lambda-list:")
+                        (error e)))))
+            t)
+          :not-fbound)
+    (error (e)
+      (cr-log "LW FUNCTION-LAMBDA-LIST wrap failed: ~A" e)
+      :install-failed))
+  #-lispworks nil
+  "T when LW:FUNCTION-LAMBDA-LIST was wrapped for diagnostic logging.")
+
+;; CE's COMPILE-IF-NOT-COMPILED compiles every rule that is not already a
+;; compiled function: (if (compiled-function-p expr) expr (compile name expr)).
+;; LispWorks' COMPILE refuses lexical closures with "~S is a lexical closure."
+;; because it cannot rebuild the captured environment -- which is exactly what
+;; the rule closures built by this library are. Use such rules as-is (they stay
+;; interpreted) instead of failing.
+(defvar *orig-compile-if-not-compiled*
+  (let ((s (find-symbol "COMPILE-IF-NOT-COMPILED"
+                        (find-package "CLUSTER-ENGINE"))))
+    (and s (fboundp s) (symbol-function s)))
+  "Original CE function that signals on lexical closures, captured before redefinition.")
+
+(defun cluster-engine::compile-if-not-compiled (name expr)
+  "As the original Cluster Engine function, but tolerates lexical closures: if
+COMPILE fails, the rule is used uncompiled (interpreted) instead of signaling."
+  (if (compiled-function-p expr)
+      expr
+      (handler-case (compile name expr)
+        (error (e)
+          (cr-log "compile-if-not-compiled: using uncompiled rule ~S (~A)"
+                  expr e)
+          expr))))
+
+(cr-log "=== om-cluster-rules: utils.lisp loaded ===")
+(cr-log "  log file: ~A" *cr-debug-log*)
+(cr-log "  original CCL shim captured: ~S"
+        (and *orig-ccl-function-lambda-list* t))
+(cr-log "  CCL::FUNCTION-LAMBDA-LIST install status: ~S" *ccl-shim-status*)
+(cr-log "  original LW function-lambda-list captured: ~S"
+        (and *orig-lw-function-lambda-list* t))
+(cr-log "  LW::FUNCTION-LAMBDA-LIST wrapped: ~S" *lw-shim-wrapped*)
+(cr-log "  original CE compile-if-not-compiled captured: ~S"
+        (and *orig-compile-if-not-compiled* t))
+
 
 
 

@@ -304,10 +304,11 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
                  ("longer than neighbours" :longer-than-neighbours)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Allows syncopation only when the note satisfies the selected accent rule."
-  (rule::no-syncopation-unless-accented :voices voices
-                                        :metric-structure metric-structure
-                                        :accent-rule accent-rule
-                                        :rule-type rule-type :weight weight))
+  (rule::with-cr-error-log ("om-cr::no-syncopation-unless-accented")
+    (rule::no-syncopation-unless-accented :voices voices
+                                          :metric-structure metric-structure
+                                          :accent-rule accent-rule
+                                          :rule-type rule-type :weight weight)))
 
 (om::defmethod! om-cr::only-simple-syncopations
     (&key (voices 0) (gracenote-mode :normal)
@@ -340,8 +341,9 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("rest duration (or domain)" "voices" "rule type" "weight")
   :menuins '((2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Starts the given voice(s) with a rest of the specified duration. NIL accepts any rest duration."
-  (rule::start-with-rest :rest-dur rest-dur :voices voices
-                         :rule-type rule-type :weight weight))
+  (rule::with-cr-error-log ("om-cr::start-with-rest")
+    (rule::start-with-rest :rest-dur rest-dur :voices voices
+                           :rule-type rule-type :weight weight)))
 
 (om::defmethod! om-cr::metric-offset-of-motif
     (&key (metric-offset 0) (voices 0) (metric-structure :1st-beat)
@@ -354,10 +356,11 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((2 (("beats" :beats) ("1st beat" :1st-beat)))
              (5 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Constrains motif beginnings to a given metric offset."
-  (rule::metric-offset-of-motif :metric-offset metric-offset :voices voices
-                                :metric-structure metric-structure :grid grid
-                                :min-motif-length min-motif-length
-                                :rule-type rule-type :weight weight))
+  (rule::with-cr-error-log ("om-cr::metric-offset-of-motif")
+    (rule::metric-offset-of-motif :metric-offset metric-offset :voices voices
+                                  :metric-structure metric-structure :grid grid
+                                  :min-motif-length min-motif-length
+                                  :rule-type rule-type :weight weight)))
 
 (om::defmethod! om-cr::phrase-length
     (phrase-length &key (voices 0) (relation :min) (n 32)
@@ -406,8 +409,10 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((2 (("constrain rests" :constrain) ("ignore rests" :ignore)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Restricts the maximum difference between simultaneous note durations."
-  (rule::similar-sim-durations :voices voices :max-factor max-factor
-                               :rest-mode rest-mode :rule-type rule-type :weight weight))
+  (rule::with-cr-error-log ("om-cr::similar-sim-durations")
+    (rule::similar-sim-durations :voices voices :max-factor max-factor
+                                 :rest-mode rest-mode :rule-type rule-type
+                                 :weight weight)))
 
 (om::defmethod! om-cr::metric-accents
     (&key (voices 0) (metric-structure :1st-beat)
@@ -429,9 +434,11 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
              (5 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (6 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Constrains rhythmic accents in relation to the underlying meter."
-  (rule::metric-accents :voices voices :metric-structure metric-structure
-                        :accent-rule accent-rule :strictness strictness :format format
-                        :gracenote-mode gracenote-mode :rule-type rule-type :weight weight))
+  (rule::with-cr-error-log ("om-cr::metric-accents")
+    (rule::metric-accents :voices voices :metric-structure metric-structure
+                          :accent-rule accent-rule :strictness strictness
+                          :format format :gracenote-mode gracenote-mode
+                          :rule-type rule-type :weight weight)))
 
 (om::defmethod! om-cr::accents-in-other-voice
     (&key (voices 1) (accents-voice 0)
@@ -447,9 +454,10 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
                  ("note <-> position" :note-n-position)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Constrains accents in VOICES according to note onsets in ACCENTS-VOICE."
-  (rule::accents-in-other-voice :voices voices :accents-voice accents-voice
-                                :accent-rule accent-rule :strictness strictness
-                                :rule-type rule-type :weight weight))
+  (rule::with-cr-error-log ("om-cr::accents-in-other-voice")
+    (rule::accents-in-other-voice :voices voices :accents-voice accents-voice
+                                  :accent-rule accent-rule :strictness strictness
+                                  :rule-type rule-type :weight weight)))
 
 (om::defmethod! om-cr::mk-accent-has-at-least-duration-ar
     (&key (min-duration 1/4))
@@ -913,7 +921,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "maximum melodic interval (midicents)" "rule type" "weight" "scale voice")
   :menuins '((2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Tintinnabuli M-voice rule adapted to OM midicents."
-  (ce::rules->cluster
+  (ce::rules-to-cluster
    (om-cr::min/max-interval :voices voices :max-interval max-interval :rule-type rule-type :weight weight)
    (om-cr::only-scale-pcs :voices voices :input-mode :all :rule-type rule-type :weight weight :scale-voice scale-voice)))
 
@@ -924,7 +932,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "minimum melodic interval (midicents)" "maximum melodic interval (midicents)" "rule type" "weight" "chord voice")
   :menuins '((3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
   :doc "Tintinnabuli T-voice rule adapted to OM midicents."
-  (ce::rules->cluster
+  (ce::rules-to-cluster
    (om-cr::min/max-interval :voices voices :min-interval min-interval :max-interval max-interval :rule-type rule-type :weight weight)
    (om-cr::only-chord-pcs :voices voices :input-mode :all :rule-type rule-type :weight weight :chord-voice chord-voice)))
 

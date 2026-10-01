@@ -211,7 +211,7 @@ TODO: Include in rhythm menu, once finished
 			 (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
 			 (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
 			 (otherwise accent-rule)))
-		 (length-rule-args (length (ccl::function-lambda-list rule)))) 
+		 (length-rule-args (length (cr-lambda-list rule))))
 	    (cond ((= length-rule-args 1)
 		   ;; create a function with same number of args as given rule
 		   #'(lambda (offset_dur1)
@@ -754,11 +754,7 @@ Other arguments are inherited from r-note-meter.
 		    (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
 		    (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
 		    (otherwise accent-rule)))
-	    (length-rule-args (length
-			       #+opusmodus (ccl:arglist rule)
-			       #+lispworks (ccl::function-lambda-list rule)
-			       #+SBCL (sb-kernel:%simple-fun-arglist rule)
-			       )))
+	    (length-rule-args (length (cr-lambda-list rule))))
        ;; create a function with same number of args as given rule
        (cond ((= length-rule-args 1)
 	      #'(lambda (args1) 
@@ -823,11 +819,7 @@ Other arguments are inherited from r-rhythm-rhythm.
                               (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
                               (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
                               (otherwise accent-rule)))
-                      (length-rule-args (length
-                                         #+opusmodus (ccl:arglist rule)
-                                         #+lispworks (ccl::function-lambda-list rule)
-                                         #+SBCL (sb-kernel:%simple-fun-arglist rule)
-                                         )))
+                      (length-rule-args (length (cr-lambda-list rule))))
                  ;; create a function with same number of args as given rule
                  (cond ((= length-rule-args 1)
                         #'(lambda (d_offs) 
