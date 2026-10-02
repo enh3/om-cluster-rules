@@ -138,7 +138,34 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
              (6 (("profile" :profile) ("intervals" :intervals) ("directions" :directions)))
              (7 (("normal" :normal) ("exclude-gracenotes" :exclude-gracenotes)))
              (8 (("yes" :yes) ("no" :no))))
-  :doc "Heuristic rule following a time-aware profile. OM BPF/BPF-LIB inputs are converted internally to FENV."
+  :doc "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile, taking the timing of the profile into account. For example, with profile-duration set to 2 the profile (a fenv) ranges from 0 to 2 so that the fenv describes a profile over 2 whole notes.
+
+Args:
+- profile (a list of numbers, a fenv or -- when using Opusmodus -- an OMN sequence): Specifies the profile that should be followed. A list of numbers is translated into a fenv with equidistant points. If an OMN expression contains chords, then only the first chord note is extracted. If a list of profiles is specified, then these are used to constrain multiple given different voices. In this case, the number of profiles, and the number of specified voices to constrain must match.
+
+- voices (int or list of ints): The voice(s) to which the constraint is applied. If multiple profiles are given, then a different voice for each profile should be specified.
+
+- profile-duration (number): The overall duration of the profile. Even if the profile is specified as OMN expression with rhythmic values, by default the profile lasts for a whole tone (1/1) -- all rhythmic values are streched/shrinked accordingly.
+
+- start / end (number or list of numbers): At which time point to start / end applying this rule. A start time greater zero has the effect that the profile is shifted in time to start at the specified time. An end time smaller than the duration of the profile has the effect that the part of the profile behind the set end is cut off. If end is NIL (the default) then the full profile duration is used.
+start and end can both also be a list of start/end values to specify different values for different voices.
+
+- mode: Select whether to constrain the rhythmic values (rhythm) or the pitches (pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
+
+- constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.
+
+- interpolate-score? (only relevant if profile is an OMN expression): Specifies whether score pitches or durations should be hold for their whole duration in the profile (sample-and-hold format), or whether between these values should be interpolated (zick-zack format).
+
+- weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).
+
+Other arguments are inherited from hr-rhythm-pitch-one-voice.
+
+NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule.
+
+BUG:
+A profile as OMN expression with leading rests not yet properly supported.
+
+OM BPF/BPF-LIB inputs are converted internally to FENV."
   (rule::follow-timed-profile-hr (%profile->fenv profile)
                                  :voices voices :profile-duration profile-duration
                                  :start start :end end :mode mode :constrain constrain
@@ -154,7 +181,29 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
            "mode" "constraint" "start" "weight offset")
   :menuins '((3 (("pitch" :pitch) ("rhythm" :rhythm)))
              (4 (("profile" :profile) ("intervals" :intervals) ("directions" :directions))))
-  :doc "Heuristic rule following a profile. OM BPF/BPF-LIB inputs are converted internally to FENV."
+  :doc "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile.
+
+Args:
+
+- profile (a list of numbers, a fenv, or -- when using Opusmodus -- an OMN sequence, or a list of any of these): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. In case a fenv is given, then that fenv is sampled (n equidistant samples) and the y values are used. If multiple profiles are given, they are applied to the given voices in the same order.
+
+- voices (int or list of ints): The voice(s) to which the constraint is applied.
+
+- n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. NOTE: if the profile is a fenv then make sure n is greater than 0.
+
+- mode: Select whether to constrain either the rhythmic values (rhythm) or the pitches (pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
+
+- constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.
+
+- start (int): At which note position to start applying this rule (zero-based).
+
+- weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).
+
+NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule (in future it would be nice to control the average pitch/rhythm of motifs, but that would require different rule applicators).
+
+BUG: mode :rhythm not yet working.
+
+OM BPF/BPF-LIB inputs are converted internally to FENV."
   (rule::follow-profile-hr (%profile->fenv profile)
                            :voices voices :n n :mode mode :constrain constrain
                            :start start :weight-offset weight-offset))
@@ -164,7 +213,24 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1
   :initvals '(nil 0 0 200 0)
   :indoc '("profile (list or BPF)" "voices" "number of notes" "step size (midicents)" "start")
-  :doc "Strict melodic rule following the interval categories of a profile. This is the OM port of the public PWGL box."
+  :doc "Strict rule: The pitches of the resulting music follow the intervals of the given profile (numbers, a voice, or BPFs). If the profile contains a pitch repetition, then the corresponding interval in the solution must be a repetition. If the profile contains a step (up to `step-size'), then the corresponding interval in the solution must be a step in the same direction (up to `step-size'). If the profile contains a skip (larger than `step-size'), then the corresponding interval in the solution must be a skip in the same direction.
+
+Args:
+
+voices (int or list of ints): The voice(s) to which the constraint is applied.
+
+n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded. NOTE: if a BPF is used then make sure n is greater than 0.
+
+profile: Specifies the profile, which should be followed. This can be either a list of numbers (ints, floats or ratios), a voice object (or a score/part), a BPF object. In case a score or part object is given, then only the first voice is extracted and used. If voice objects contains chords, then only the first chord note is extracted. In case a BPF is given, then that BPF is sampled (n samples) and the y values are used.
+
+Key args:
+
+start (int): At which note position to start applying this rule (zero-based).
+
+TODO: revise -- is this part of doc (copied from previous version of rule) still true?
+NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule (in future it would be nice to control the average pitch/rhythm of motifs, but that would require different rule applicators).
+
+This the OM port of the public PWGL box."
   (let ((list-profile (cond ((%bpf-p profile)
                              (if (> n 0) (%sample-profile profile n)
                                  (error "FOLLOW-INTERVAL-PROFILE: N must be > 0 for a BPF.")))
@@ -197,7 +263,22 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :initvals '(nil 0 16 1/16 1 0)
   :indoc '("BPF or BPF-LIB" "voices" "number of notes" "minimum duration"
            "maximum duration" "random deviation")
-  :doc "Heuristic rhythmic profile rule, ported from the original PWGL BPF rule."
+  :doc "Heuristic constraint: rhythmic values essentially follow a BPF. However, the BPF is slightly processed. Firstly, the BPF values are scaled into the interval [min-scaling, max-scaling]. Secondly, the BPF can be somewhat randomised (amount chosen with rnd-deviation, see below). Also, the BPF becomes somewhat 'curved' (using power 3) to address the distribution of rhythmic values (e.g., 1/16, 1/8, 1/4..) [the latter is a HACK].
+
+Note that the rule follow-profile-hr is more flexible than the rule rhythm-profile-BPF-hr, but this rule is more easy to use for its purposes. Also, this rule allows for rests to occur at any position of a note (with the same duration).
+
+Args:
+  voices (int or list of ints): the voice(s) to which the constraint is applied.
+  n (int): number of notes
+  BPFs (a BPF or list of BPFs): the BPF to follow.
+  min-scaling (positive number): min dur (e.g, 1/16).
+  max-scaling (positive number): max dur.
+
+Keyword args:
+  rnd-deviation (float): amount by which the resulting value for the heuristic deviates from given BPF. 0 means no deviation, 0.5 means the value may deviate up to 50 percent (to either side).
+  permutate (a function): arbitrary permutations of the BPF can be defined by a function expecting a list of numbers and returning a list of numbers of the same length. Such permutations are applied after all internal processing of the BPF.
+
+NOTE: This rule can apply different BPFs to different voices with different settings. If a list of BPFs is given, then a different BPF is given to each of the voices listed. In that case, all other arguments (except n) can be either single values that are shared by all voices, or a list of different values for the different voices."
   (let* ((profiles (cond ((%bpf-lib-p bpf) (om::bpf-list bpf))
                          ((and (listp bpf) (every #'%bpf-p bpf)) bpf)
                          (t (list bpf))))
@@ -223,43 +304,43 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1
   :initvals '(nil)
   :indoc '("functions")
-  :doc "Compose mapping/transformation functions from left to right."
+  :doc "Compose mapping/transformation functions from left to right into a single function that can be given to pitch-profile-hr or rhythm-profile-hr."
   (apply #'rule::compose-functions functions))
 
 (om::defmethod! om-cr::mp-add-offset ((offset number))
   :icon 1 :initvals '(0) :indoc '("offset")
-  :doc "Return a profile mapping function that adds OFFSET."
+  :doc "Return a mapping function for pitch-profile-hr or rhythm-profile-hr that adds OFFSET to the original value."
   (rule::mp-add-offset offset))
 
 (om::defmethod! om-cr::mp-multiply ((factor number))
   :icon 1 :initvals '(1) :indoc '("factor")
-  :doc "Return a profile mapping function that multiplies by FACTOR."
+  :doc "Return a mapping function for pitch-profile-hr or rhythm-profile-hr that multiplies the original value by FACTOR."
   (rule::mp-multiply factor))
 
 (om::defmethod! om-cr::mp-add-random-offset ((max-random-offset number))
   :icon 1 :initvals '(0) :indoc '("maximum random offset")
-  :doc "Return a profile mapping function adding a random offset in +/- MAX-RANDOM-OFFSET."
+  :doc "Return a mapping function for pitch-profile-hr or rhythm-profile-hr that adds a random offset in +/- MAX-RANDOM-OFFSET, the maximum random deviation above or below the original value."
   (let ((a (abs max-random-offset)))
     (lambda (x) (+ x (%random-between (- a) a)))))
 
 (om::defmethod! om-cr::trfm-scale ((minimum number) (maximum number))
   :icon 1 :initvals '(0 1) :indoc '("minimum" "maximum")
-  :doc "Return a profile transformation that scales a numeric list to MINIMUM..MAXIMUM."
+  :doc "Return a transformation function for pitch-profile-hr or rhythm-profile-hr that scales the original values between MINIMUM..MAXIMUM."
   (lambda (xs) (%scale-list xs minimum maximum)))
 
 (om::defmethod! om-cr::trfm-add-bpf ((bpf om::bpf))
   :icon 1 :initvals '(nil) :indoc '("BPF")
-  :doc "Return a transformation that adds the sampled BPF to a profile list."
+  :doc "Return a transformation function for pitch-profile-hr or rhythm-profile-hr that adds the sampled BPF to each original value."
   (lambda (xs) (mapcar #'+ xs (%sample-profile bpf (length xs)))))
 
 (om::defmethod! om-cr::trfm-multiply-bpf ((bpf om::bpf))
   :icon 1 :initvals '(nil) :indoc '("BPF")
-  :doc "Return a transformation that multiplies a profile list by a sampled BPF."
+  :doc "Return a transformation function for pitch-profile-hr or rhythm-profile-hr that multiplies each original value by the sampled BPF."
   (lambda (xs) (mapcar #'* xs (%sample-profile bpf (length xs)))))
 
 (om::defmethod! om-cr::trfm-reverse ()
   :icon 1 :initvals nil
-  :doc "Return a transformation that reverses a profile list."
+  :doc "Return a transformation function for pitch-profile-hr or rhythm-profile-hr that reverses the original value sequence."
   (lambda (xs) (reverse xs)))
 
 ;;; ---------------------------------------------------------------------------
@@ -274,7 +355,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "metric structure" "rule type" "weight")
   :menuins '((1 (("beats" :beats) ("1st beat" :1st-beat)))
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "For any two consecutive beats/bars, at least one note must start on the beat."
+  :doc "For any two consecutive beats/bars, at least one note must start on the beat. All arguments are inherited from r-meter-note."
   (rule::no-two-consecutive-syncopations :voices voices
                                          :metric-structure metric-structure
                                          :rule-type rule-type :weight weight))
@@ -287,7 +368,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "metric structure" "rule type" "weight")
   :menuins '((1 (("beats" :beats) ("1st beat" :1st-beat)))
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Prohibits syncopation with respect to the selected metric level."
+  :doc "Prohibits syncopation with respect to the selected metric level. All arguments are inherited from r-meter-note."
   (rule::no-syncopation :voices voices :metric-structure metric-structure
                         :rule-type rule-type :weight weight))
 
@@ -303,7 +384,22 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
                  ("longer than predecessor (strict)" :longer-than-predecessor-strict)
                  ("longer than neighbours" :longer-than-neighbours)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Allows syncopation only when the note satisfies the selected accent rule."
+  :doc "Restricts syncopations (of level metric-structure) to notes accented according to accent-rule.
+
+Args:
+  voices (int or list of ints): The numbers of voice(s) to constrain.
+
+  accent-rule (menu item or function): A function returning true if an accent is expressed and nil otherwise. The function expects one or more arguments, all in the form (dur offs), where dur is the duration of a note and offs is the offset to the following accent (i.e. the duration until the following accent). Example: '(1/4 -1/8). A note is 'on' the accent if its offset = 0.
+Some accent rules are predefined and can be simply selected in the menu of the argument. Other predefined accent rules expect additional arguments controlling their effect. These are available under the Cluster Rules sub menu rhythm - accent rules.
+
+Other arguments are inherited from r-rhythm-rhythm.
+
+TMP: doc
+BUG: Still not working. See example ShiftedMetricAccents (for CIM paper).
+I included debugging format instruction, but seeminlgy this not printed for every note. Double-check for which notes this skipped.
+Anyway, I may be close with this one...
+
+TODO: Include in rhythm menu, once finished."
   (rule::with-cr-error-log ("om-cr::no-syncopation-unless-accented")
     (rule::no-syncopation-unless-accented :voices voices
                                           :metric-structure metric-structure
@@ -318,7 +414,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "grace notes" "rule type" "weight")
   :menuins '((1 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restricts syncopations over beats to relatively simple cases."
+  :doc "Restricts syncopations over beats to certain relatively simple cases. For example, the only possible syncopation allowed for a note value 1/4 is 1/8 before a beat. All arguments are inherited from r-note-meter."
   (rule::only-simple-syncopations :voices voices :gracenote-mode gracenote-mode
                                   :rule-type rule-type :weight weight))
 
@@ -330,7 +426,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "grace notes" "rule type" "weight")
   :menuins '((1 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restricts rhythmic positions of tuplets to relatively simple cases."
+  :doc "Restricts the rhythmic position of notes to relatively simple cases. For example, triplet notes can only be part of a triplet. All arguments are inherited from r-note-meter."
   (rule::only-simple-tuplet-offs :voices voices :gracenote-mode gracenote-mode
                                  :rule-type rule-type :weight weight))
 
@@ -340,7 +436,11 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :initvals '(0 0 :true/false 1)
   :indoc '("rest duration (or domain)" "voices" "rule type" "weight")
   :menuins '((2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Starts the given voice(s) with a rest of the specified duration. NIL accepts any rest duration."
+  :doc "Start the given voice(s) with a rest of the given duration (either an int or a list of ints indicating a domain) If rest-dur is NIL then this means a rest of any duration is acceptable.
+
+Hint: make sure you included rests in your rhythm domain (as negative integers).
+
+Other optional arguments are inherited from r-index-rhythms-one-voice."
   (rule::with-cr-error-log ("om-cr::start-with-rest")
     (rule::start-with-rest :rest-dur rest-dur :voices voices
                            :rule-type rule-type :weight weight)))
@@ -355,7 +455,16 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
            "minimum motif length" "rule type" "weight")
   :menuins '((2 (("beats" :beats) ("1st beat" :1st-beat)))
              (5 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrains motif beginnings to a given metric offset."
+  :doc "Motifs must start metric-offset away from set beat. Motifs starting with rests are not constrained.
+
+Args:
+  metric-offset (ratio): How far should motifs be shifted with respect to the metric-structure? For example, if metric-offset is -1/8, then motifs will be shifted to start an eighths note before the beat (or bar).
+  grid (ratio): Motifs could be longer than a beat (or bar) so that this rule would be checked more than once. If a motif is longer than the set grid, it will only be checked at its beginning whether its metric offset is as set.
+
+Optional arg:
+  min-motif-length (int): motifs with a length below this setting are uneffected.
+
+Other arguments are inherited from r-meter-note."
   (rule::with-cr-error-log ("om-cr::metric-offset-of-motif")
     (rule::metric-offset-of-motif :metric-offset metric-offset :voices voices
                                   :metric-structure metric-structure :grid grid
@@ -371,7 +480,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
            "number of profile samples" "rule type" "weight")
   :menuins '((2 (("minimum" :min) ("maximum" :max)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Controls the number of notes/grace notes between rests. A BPF can define a changing phrase length profile."
+  :doc "This rule controls the number of notes and grace notes between rests (the length of phrases).
+
+Args:
+  phrase-length (int): The set number of notes between rests. Consecutive rests (effectively longer rests) can occur freely.
+  relation: Whether the set phrase length is the required minimum or maximum. (If you want to constrain both the upper and lower boundary then simply use two of these rules.)
+
+BUG: Strangely, at least one motif of the rhythm domain must have at least length 2. Not yet sure why..
+
+Other arguments are inherited from r-rhythms-one-voice."
   (let* ((profile? (or (%bpf-p phrase-length) (fenv:fenv? phrase-length)))
          (vals (and profile? (%sample-profile phrase-length n))))
     (ce::R-rhythms-one-voice
@@ -408,7 +525,18 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "maximum duration factor" "rest mode" "rule type" "weight")
   :menuins '((2 (("constrain rests" :constrain) ("ignore rests" :ignore)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restricts the maximum difference between simultaneous note durations."
+  :doc "This rule restricts the maximum difference between simultaneous note durations. Together with the rule r-rhythm-hierarchy (from library cluster engine) this rule allows to enforce a homophonic texture and also almost homophonic textures.
+
+Note that grace notes are ignored by this rule.
+
+Args:
+  voices (a list of ints): The list of voices affected by this constraint. The first given voice is used as a reference: notes of all other voices are compared to this voice. NOTE: if the reference voice is not the voice with the lowest number, then the search is slowed down.
+  max-factor (a ratio): If max-factor is 1, then the simultaneous durations always have exactly the same duration (however, neither the size of the duration nor whether they start together is constrained). If max-factor is larger (or smaller) than one then this factor defines the largest possible quotient between simultaneous durations. For example, if max-factor is 2 then any note can be at most the double and at least halve of the simultaneous note (note that the rule behaves the same whether max-factor is 1/2 or 2).
+  rest-mode: Whether or not to also constrain rests or not. If rests are constrained, then all simultaneous notes must be notes and simultaneous rests must be rests.
+
+Other args are inherited from r-rhythm-rhythm.
+
+BUG: Arg factor seemingly not fully working as documented yet if factor > 1."
   (rule::with-cr-error-log ("om-cr::similar-sim-durations")
     (rule::similar-sim-durations :voices voices :max-factor max-factor
                                  :rest-mode rest-mode :rule-type rule-type
@@ -433,7 +561,33 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
                  ("duration/offset/motif/index" :d_offs_m_n)))
              (5 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (6 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrains rhythmic accents in relation to the underlying meter."
+  :doc "Restricts where metric accents occur depending on the underlying meter. If an accent occurs, then it is on the position defined.
+
+Args:
+  metric-structure: Position where accents are controlled (on any beat or the first beat of a measure).
+
+  accent-rule (menu item or function): A function returning true if an accent is expressed and nil otherwise. The function expects one or more arguments, all by default (if format is :d_offs) in the form (dur offs), where dur is the duration of a note and offs is the offset to the following accent (i.e. the duration until the following accent). Example: '(1/4 -1/8). A note is 'on' the accent if its offset = 0.
+Some accent rules are predefined and can be simply selected in the menu of the argument. Other predefined accent rules expect additional arguments controlling their effect. These are available under the Cluster Rules sub menu rhythm - accent rules.
+
+  When accent-rule expects multiple arguments (data for multiple consecutive notes), on which note the metric accent is forced to occur depends on the number of arguments expected by accent-rule.
+    - 1 argument: that note.
+    - 2 arguments: the second note.
+    - 3 arguments: the second note.
+    - 4 arguments: the fourth note.
+    More arguments are currently not supported.
+
+  Some accent rules are predefined and can be simply selected in the menu of the argument.
+    :longer-than-predecessor: Accented notes are longer than the preceding note and at least as long as the succeeding note. BUG: not constrained for first and last 2 notes! (fixing that needs more flexible rule applicators).
+    :longer-than-neighbours: Accented notes are longer than the preceding and the succeeding note. BUG: not constrained for first and last 2 notes!
+
+  Other predefined accent rules expect additional arguments controlling their effect. These are available under the Cluster Rules sub menu rhythm - accent rules.
+
+  strictness: Controls how events are constrained. There are three different cases.
+    :note: if an event meets the accent-rule, then it must be on a specified metric position (see metric-structure). However, there can be such metric positions without notes meeting the accent-rule.
+    :position: if an event is on a specified metric position (see metric-structure) then it must meet the accent-rule. However, there can be accentuated notes at other metric positions. Also, if a note continues sounding at the specified position that started earlier (syncopation) then no accent at that position can be enforced (because only notes are checked, not metric positions).
+    :note-n-position: if an event meets the accent-rule, then it must be on a specified metric position -- and vice versa.
+
+Other arguments are inherited from r-note-meter."
   (rule::with-cr-error-log ("om-cr::metric-accents")
     (rule::metric-accents :voices voices :metric-structure metric-structure
                           :accent-rule accent-rule :strictness strictness
@@ -453,7 +607,24 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
              (3 (("note -> position" :note) ("position -> note" :position)
                  ("note <-> position" :note-n-position)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrains accents in VOICES according to note onsets in ACCENTS-VOICE."
+  :doc "Restricts where metric accents occur depending on the note onsets defined in an 'accents voice'. If an accent occurs, then it is on the position defined.
+
+Args:
+  voices (int or list of ints): The numbers of voice(s) to constrain.
+
+  accent-rule (menu item or function): A function returning true if an accent is expressed and nil otherwise. The function expects one or more arguments, all in the form (dur offs), where dur is the duration of a note and offs is the offset to the following accent (i.e. the duration until the following accent). Example: '(1/4 -1/8). A note is 'on' the accent if its offset = 0.
+Some accent rules are predefined and can be simply selected in the menu of the argument. Other predefined accent rules expect additional arguments controlling their effect. These are available under the Cluster Rules sub menu rhythm - accent rules.
+
+  strictness: Controls how events are constrained. There are three different cases.
+    :note: if an event meets the accent-rule, then it must be on accented position (there is a simultaneous note onset in the accent-voice). However, there can be such accented positions without notes meeting the accent-rule.
+    :position: if an event is on an accented position then it must meet the accent-rule. However, there can be accentuated notes at other positions. Also, if a note continues sounding at the accented position that started earlier then no accent at that position can be enforced (because only notes in voices are checked, not in accents-voice).
+    :note-n-position: if an event meets the accent-rule, then it must be on a specified accented position -- and vice versa.
+
+Optional args:
+
+  accents-voice: the number of the voice that defines accents. Each note onset in accents-voice is taken as an accent for the given voices.
+
+Other arguments are inherited from r-rhythm-rhythm."
   (rule::with-cr-error-log ("om-cr::accents-in-other-voice")
     (rule::accents-in-other-voice :voices voices :accents-voice accents-voice
                                   :accent-rule accent-rule :strictness strictness
@@ -462,30 +633,46 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
 (om::defmethod! om-cr::mk-accent-has-at-least-duration-ar
     (&key (min-duration 1/4))
   :icon 1 :initvals '(1/4) :indoc '("minimum duration")
-  :doc "Returns an accent-rule function requiring at least MIN-DURATION."
+  :doc "Returns an accent-rule function for metric-accents or accents-in-other-voice requiring at least MIN-DURATION."
   (rule::mk-accent-has-at-least-duration-ar :min-duration min-duration))
 
 (om::defmethod! om-cr::mk-accent->-prep-or->=-dur-ar
     (&key (min-duration 1/4))
   :icon 1 :initvals '(1/4) :indoc '("minimum duration")
-  :doc "Returns an accent rule: longer than predecessor OR at least MIN-DURATION."
+  :doc "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are EITHER longer than the preceding note and at least as long as the succeeding note, OR at least min-duration long."
   (rule::mk-accent->-prep-OR->=-dur-ar :min-duration min-duration))
 
 (om::defmethod! om-cr::mk-accent->-prep-and->=-dur-ar
     (&key (duration-threshold 1/4))
   :icon 1 :initvals '(1/4) :indoc '("duration threshold")
-  :doc "Returns an accent rule: longer than predecessor AND at least DURATION-THRESHOLD."
+  :doc "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are longer than the preceding note. Additionally, if the succeeding note is of the same length or longer, then they are at least duration-threshold long to count as accented."
   (rule::mk-accent->-prep-AND->=-dur-ar :duration-threshold duration-threshold))
 
 (om::defmethod! om-cr::thomassen-accents ((midi-pitches list))
   :icon 1 :initvals '(nil) :indoc '("MIDI pitches")
-  :doc "Returns Thomassen melodic accent strengths for a MIDI pitch sequence."
+  :doc "Expects a list of MIDI note numbers (ints) representing a melodic sequence, and returns a list of floats representing the associated melodic accent value of each pitch as defined by the Thomassen model (Thomassen, 1982).
+
+NOTE: no accent values are available for the first two and the last pitch, therefore nil is return for those pitches.
+
+A list of all potential accent strength values is shown below, obtained by systematically combining all values of the model (some of these values may not be possible in reality). High accent values (0.415) are mapped to accents expressed by local max prepared by two upwards steps. Slightly lower accent values (0.355) occur for accents prepared by two downward steps, followed by an upward step.
+
+Accent value 0.335 seems to occurs for mere local max and min (or only local max?).
+
+(0.0 0.028900001 0.0493 0.056100003 0.08409999 0.085 0.0957 0.10890001 0.113900006 0.120699994 0.1411 0.145 0.165 0.17 0.1943 0.20589998 0.22110002 0.2343 0.24069999 0.25 0.2739 0.29 0.33 0.335 0.355 0.415 0.4489 0.4757 0.5 0.50409997 0.5561 0.5893 0.67 0.6889 0.71 0.83 1.0)
+
+* References:
+
+Thomassen, J. M. (1982) Melodic accent: Experiments and a tentative model. The Journal of the Acoustical Society of America. 71 (6), 1596–1605."
   (rule::thomassen-accents midi-pitches))
 
 (om::defmethod! om-cr::thomassen-accents-ar
     (&key (thomassen-accent-strength 0.4))
   :icon 1 :initvals '(0.4) :indoc '("accent strength threshold")
-  :doc "Returns a Thomassen accent-rule function."
+  :doc "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are melodic accents according to the Thomassen model (Thomassen, 1982). See the documentation of thomassen-accents for more details on this model and the reference.
+
+NOTE: This is an expensive constraint performance-wise (i.e. the search can take very long): the constraint defines a relation between four consecutive notes, the metric positions (offset value) of the but-last note and the melodic intervals of these four notes. Best use only for small and/or monophonic results.
+
+NOTE: This constraint requires the format :d_offs_m_n for the functions metric-accents or accents-in-other-voice."
   (rule::thomassen-accents-ar thomassen-accent-strength))
 
 ;;; ---------------------------------------------------------------------------
@@ -500,7 +687,17 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "minimum interval (midicents or BPF)" "maximum interval (midicents or BPF)"
            "number of notes" "rule type" "weight")
   :menuins '((4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Limit melodic interval size. In OM, interval values are expressed in midicents. BPF inputs are converted to FENV internally."
+  :doc "Limit the minimum/maximum melodic interval for the given voice. In OM, interval values are expressed in midicents. BPF inputs are converted to FENV internally.
+
+Args:
+voices (int or list of ints): the number of the voice(s) to constrain.
+
+key-args:
+min-interval (number, fenv or NIL): minimum interval in midicents. Ignored if NIL. Implicitly disallows repetition if >= 1. If a fenv, then the fenv specifies how the min interval changes over n notes (i.e., fenv specifies n-1 intervals).
+max-interval (number, fenv or NIL): maximum interval in midicents. Ignored if NIL. If a fenv, then the fenv specifies how the max interval changes over n notes.
+n (int): The first n notes are affected. If 0, then n is disregarded. NOTE: if any fenv is set then make sure n is greater than 0.
+
+Args rule-type and weight inherited from r-pitches-one-voice."
   (rule::min/max-interval :voices voices
                           :min-interval (%profile->fenv min-interval)
                           :max-interval (%profile->fenv max-interval)
@@ -515,7 +712,14 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((2 (("pitches" :pitches) ("pitch classes" :pcs)))
              (3 (("only given" :only-given) ("exclude given" :exclude-given)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restrict pitches or pitch classes. Absolute pitches are OM midicents; pitch classes are integers 0..11."
+  :doc "Restricts the pitches to the pitches or PCs specified. Absolute pitches are OM midicents; pitch classes are integers 0..11.
+
+Args:
+  pitches (list of ints): Specified pitches.
+  pcs?: use absolute pitches or pitch classes?
+  mode: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
+
+Other arguments are inherited from r-pitches-one-voice."
   (if (eq pcs? :pitches)
       (rule::set-pitches :voices voices :pitches pitches :pcs? :pitches
                          :mode mode :rule-type rule-type :weight weight)
@@ -539,7 +743,14 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("absolute" :absolute) ("up/down" :up/down)))
              (2 (("only given" :only-given) ("exclude given" :exclude-given)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restrict melodic intervals. In OM interval values are expressed in midicents."
+  :doc "Restricts the melodic intervals to those intervals specified. In OM, interval values are expressed in midicents.
+
+Args:
+  intervals (list of ints): Specified intervals.
+  absolute?: Controls whether the direction of the intervals is taken into account. The direction can be specified with a sign (positive for upwards, negative for downwards). If absolute? is set to :absolute, then the specified intervals can be used for any direction. By contrast, :up/down takes the sign of the given intervals into account.
+  mode: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
+
+Other arguments are inherited from r-pitches-one-voice."
   (rule::set-intervals :intervals intervals :absolute? absolute? :mode mode
                        :voices voices :rule-type rule-type :weight weight))
 
@@ -548,7 +759,17 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1
   :initvals '(100 0 0 1)
   :indoc '("preferred interval (midicents or BPF)" "voices" "number of notes" "weight factor")
-  :doc "Heuristic preference for a melodic interval. OM interval values are midicents; a BPF/FENV can vary the preferred interval over time."
+  :doc "Heuristic rule that constrains the preferred melodic interval size. In OM, interval values are expressed in midicents. By default, small steps are preferred (interval is 0). The more an interval deviates from the set interval the less likely it is to be chosen.
+
+Args:
+
+voices (int or list of ints): The voice(s) to which the constraint is applied.
+
+interval (number, BPF or FENV): The preferred interval size. A number sets a constant size, which a BPF sets a size that changes over time. NOTE: if a BPF is used then make sure arg n (see below) is greater than 0.
+
+n (int): The first n notes are affected. If 0, then n is disregarded.
+
+weight-factor: factor for the heuristic weight."
   (let* ((profile? (or (%bpf-p interval) (fenv:fenv? interval)))
          (offsets (when profile?
                     (if (> n 0)
@@ -581,7 +802,18 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((2 (("maximum" :max) ("minimum" :min) ("equal" :equal)))
              (3 (("constrain" :constrain) ("ignore" :ignore)))
              (6 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrains the accumulated melodic span over N notes. OM interval values are midicents."
+  :doc "The sum of melodic intervals between the pitches of n notes is smaller / greater than the given interval. OM interval values are midicents. If there are any rests among the last n notes then this rule is ignored.
+
+Args:
+  n (int): number of notes involved.
+  interval (int or BPF): the max/min interval. If a BPF, then it defines how the interval changes across the voice(s). However, in that case the arg number-of-notes must be given, otherwise the rule throws an error.
+  condition: the relation that should hold between the sum of intervals and the given interval: whether the sum should not exceed (:max) or be exactly (:equal) or be at least (:min) the given interval.
+
+Optional args:
+  sublists: whether or not to also constrain the intervals between the last n-1, n-2 ... notes in the same way. This argument is only effective if condition is set to :max, otherwise it setting is always :ignore.
+  number-of-notes: the number of variables set in clusterengine. This argument is required if interval is a BPF.
+
+Other arguments are inherited from r-pitches-one-voice."
   (let* ((profile? (or (%bpf-p interval) (fenv:fenv? interval)))
          (intervals (when profile?
                       (if (> number-of-notes 0)
@@ -609,7 +841,12 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :initvals '(0 :true/false 1)
   :indoc '("voices" "rule type" "weight")
   :menuins '((1 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Disallow direct pitch/chord repetition."
+  :doc "Disallows any direct pitch or chord repetition.
+
+Args:
+voices: the number of the voice(s) to constrain.
+
+Optional arguments are inherited from r-pitches-one-voice."
   (ce::R-pitches-one-voice
    (%rule-function () (p1 p2)
      (if (and p1 p2)
@@ -625,7 +862,14 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("voices" "window" "mode" "rule type" "weight")
   :menuins '((2 (("pitches" :pitches) ("pitch classes" :pcs)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Disallow repetitions within a melodic window. Pitch-class mode is adapted to OM midicents."
+  :doc "Disallows repetitions within a window of a given number of melodic notes or chords. Pitch-class mode is adapted to OM midicents.
+
+Args:
+voices: the number of the voice(s) to constrain.
+window: the number of notes among which no repetition should happen (if this larger than the currently available number, then simply the available notes are taken).
+mode: whether to disallow repeated pitches (:pitches) or pitch classes (:pcs).
+
+Optional arguments are inherited from r-pitches-one-voice."
   (ce::R-pitches-one-voice
    (%rule-function (mode window) (pitches)
      (let* ((ps (mapcar (lambda (p)
@@ -642,7 +886,18 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :initvals '(0 3200 2 :true/false 1)
   :indoc '("voices" "relation factor" "accuracy factor" "rule type" "weight")
   :menuins '((3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Relates note durations and melodic interval sizes. Default relation factor is scaled for OM midicents."
+  :doc "Pitch intervals and durations are linearly related. The default relation factor is scaled for OM midicents.
+
+Args:
+voices (int or list of ints): The voice(s) to which the rule is applied.
+
+rel-factor (relation factor): the size of the melodic interval is approximately the duration times rel-factor.
+
+acc-factor (accuracy factor): factor how much the interval can deviate from that relation above and below.
+
+Examples: If rel-factor is 1 and acc-factor is also one, then the duration of a note would need to be the same as the interval starting at it (e.g., duration = 2 and interval is 2). If rel-factor is 32 and acc-factor is 2 (the defaults) then the interval can be any value between duration*32/2 and duration*32*2.
+
+Optional arguments are inherited from r-rhythm-pitch-one-voice."
   (rule::durations-control-intervals :voices voices :rel-factor rel-factor
                                      :acc-factor acc-factor :rule-type rule-type :weight weight))
 
@@ -656,7 +911,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
                  ("ascending" :ascending) ("ascending strict" :ascending-strict)
                  ("descending" :descending) ("descending strict" :descending-strict)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restrict the number of consecutive melodic intervals moving in the same direction."
+  :doc "This rule controls how many consecutive intervals can be ascending or descending. At most n notes can be connected by intervals of the same direction.
+
+Args:
+  n (int): How many consecutive notes are taken into account?
+  direction: Which interval direction is taken into account? For example, :ascending means that the rule only looks at consecutive ascending intervals. Without the ending -strict, note repetitions are also counted as the same direction.
+
+In case of intermitting rests the rule is not applied.
+
+Other arguments are inherited from r-pitches-one-voice."
   (rule::restrict-consecutive-directions :n n :direction direction :voices voices
                                          :rule-type rule-type :weight weight))
 
@@ -668,7 +931,14 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("skip size (midicents)" "resolution size (midicents)" "repetition" "voices" "rule type" "weight")
   :menuins '((2 (("disallow" :disallow) ("allow" :allow)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Resolve melodic skips in the opposite direction. OM interval values are midicents."
+  :doc "Resolve any skip larger than skip-size by an interval in the opposite direction. OM interval values are midicents.
+
+Args:
+  skip-size: The minimum interval size (in midicents) that triggers this rule.
+  resolution-size: The maximum interval size that is allowed as a resolution.
+  repetition?: Whether or not tone repetitions are allowed as resolution.
+
+Other arguments are inherited from r-pitches-one-voice."
   (rule::resolve-skips :skip-size skip-size :resolution-size resolution-size
                        :repetition? repetition? :voices voices
                        :rule-type rule-type :weight weight))
@@ -692,7 +962,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat) ("1st voice" :1st-voice)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrain tones to the pitch classes of the simultaneous scale voice."
+  :doc "Tones (PC) in the given voice must be a member of the underlying scale (its PCs). The scale is represented as a simultaneous chord in another voice (voice 0 by default). I is either given directly to the clusterengine's pitch domain of that scale voice, or using read-harmony-file, or controlled with other constraints on that voice.
+
+Args:
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+scale-voice (int, default 0): the voice representing the underlying scale.
+
+Other arguments are inherited from r-pitch-pitch."
   (loop for voice in (%ensure-list voices) append
         (ce::R-pitch-pitch #'%in-harmony-mc? (list voice scale-voice) '(0)
                            input-mode gracenotes? :pitch rule-type weight)))
@@ -706,7 +984,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat) ("1st voice" :1st-voice)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrain tones to the pitch classes of the simultaneous chord voice."
+  :doc "Tones (PC) in the given voice must be a member of the underlying chord (its PCs). The chord is represented as a simultaneous chord in another voice (voice 1 by default). I is either given directly to the clusterengine's pitch domain of that scale voice, or using read-harmony-file, or controlled with other constraints on that voice.
+
+Args:
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+chord-voice (int, default 1): the voice representing the underlying chord.
+
+Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat."
   (loop for voice in (%ensure-list voices) append
         (ce::R-pitch-pitch #'%in-harmony-mc? (list voice chord-voice) '(0)
                            input-mode gracenotes? :pitch rule-type weight)))
@@ -720,7 +1006,17 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat) ("1st voice" :1st-voice)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrain absolute pitches to the simultaneous pitches of another voice."
+  :doc "Pitches in the given voice must be a member of the underlying spectrum (its absolute pitches). The spectrum is represented as a simultaneous chord in another voice (voice 1 by default).
+
+Args:
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+spectrum-voice (int, default 1): the voice representing the underlying spectra (quasi underlying harmony).
+
+Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat.
+
+This rule is very similar to only-chord-PCs, but instead of pitch classes absolute pitches are constrained to the pitches of the given spectrum (quasi chord)."
   (loop for voice in (%ensure-list voices) append
         (ce::R-pitch-pitch #'%in-spectrum? (list voice chord-voice) '(0)
                            input-mode gracenotes? :pitch rule-type weight)))
@@ -733,7 +1029,16 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("maximum non-harmonic duration" "voices" "grace notes" "rule type" "weight" "chord voice")
   :menuins '((2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Long notes must be chord tones. Pitch-class comparison is adapted to OM midicents."
+  :doc "Every note in the given voice(s) with a duration exceeding max-nonharmonic-dur (on any metric position) must be a harmonic tone (pitch-class comparison is adapted to OM midicents): the PC of such notes must be a member of the underlying chord (its PCs). The chord is represented as a simultaneous chord in another voice (voice 1 by default). I is either given directly to the clusterengine's pitch domain of that scale voice, or using read-harmony-file, or controlled with other constraints on that voice.
+
+Args:
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+max-nonharmonic-dur (int): the maximum duration for which non-harmonic pitches are permitted.
+
+Optional args:
+chord-voice (int, default 1): the voice representing the underlying chord.
+
+Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat."
   (let ((rule
           (%rule-function (max-nonharmonic-dur) (p-d-offs)
             (destructuring-bind ((pitch1 dur1 offs1)
@@ -757,7 +1062,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Notes immediately before/after rests must be chord tones."
+  :doc "Tones (PC) in the given voice(s) after a rest must be a member of the underlying chord PCs.
+
+Args:
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+chord-voice (int, default 1): the voice representing the underlying chord.
+
+Other arguments are inherited from r-pitch-pitch."
   (loop for voice in (%ensure-list voices) append
         (ce::R-pitch-pitch
          (%rule-function () (pitches1 pitches2)
@@ -776,7 +1089,11 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("chords" "voices" "input mode" "rule type" "weight")
   :menuins '((2 (("position for pitches" :position-for-pitches) ("index for cell" :index-for-cell)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Require the first tone to belong to the pitch classes of the first supplied chord."
+  :doc "HACK: The very first tone (PC) in given voice(s) number must be a member of the first of the given chords (the list of list of chords from read-harmony-file).
+
+NOTE: an index variant for a pitch-pitch constraint (which could access the sim chord PCs) is not available, therefore this workaround.
+
+Other arguments are inherited from r-index-pitches-one-voice."
   (loop for voice in (%ensure-list voices) append
         (ce::R-index-pitches-one-voice
          (%rule-function (chords) (pitch)
@@ -794,7 +1111,16 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((2 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat)))
              (3 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Non-chord tones must be reached and left by step."
+  :doc "Every tone (PC) that is not a chord tone (member of sim chord PCs, in voice 1 by default) is reached/left by a step of the given step size.
+
+Args:
+step-size (int): maximum interval considered a step.
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+chord-voice (int, default 1): the voice representing the underlying chord.
+
+Other arguments are inherited from r-pitch-pitch."
   (loop for voice in (%ensure-list voices) append
         (ce::R-pitch-pitch
          (%rule-function (step-size) (p1 p2 p3)
@@ -816,7 +1142,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Every non-chord tone must be followed by a chord tone."
+  :doc "Every tone (PC) that is not a chord tone (member of sim chord PCs, in voice 1 by default) is followed by a chord tone.
+
+Args:
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+chord-voice (int, default 1): the voice representing the underlying chord.
+
+Other arguments are inherited from r-pitch-pitch."
   (loop for voice in (%ensure-list voices) append
         (ce::R-pitch-pitch
          (%rule-function () (p1 p2)
@@ -836,7 +1170,11 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat) ("1st voice" :1st-voice)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Simultaneous pitch classes in the selected voices must all be unequal."
+  :doc "Sim PCs in all given voices are unequal to each other.
+
+Arguments are inherited from r-pitch-pitch.
+
+TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be simplified?"
   (ce::R-pitch-pitch
    (%rule-function () (pitches)
      (let ((pcs (mapcar #'%mc-pc (remove nil pitches))))
@@ -855,7 +1193,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
              (5 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat) ("1st voice" :1st-voice) ("at timepoints" :at-timepoints)))
              (6 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (7 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Control the number of simultaneous pitch classes."
+  :doc "Controls the number of simultaneous pitch classes. Useful, for example, to require that some underlying harmony is expressed.
+
+Args:
+  PC-number (int): the number of the simultaneous PCs. The meaning of this setting depends on the argument condition.
+  condition: Whether the number of simultaneous pitch classes should be at least the given PC-number (:min), or exactly that number (:equal), or at most that number (:max).
+  rests-mode: If set to :reduce-no, then the number of simultaneous pitch classes is subtracted from PC-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments PC-number and condition.
+  voices: the list of voices to which the rule is applied.
+
+Other arguments are inherited from r-pitch-pitch."
   (ce::R-pitch-pitch
    (%rule-function (rests-mode pc-number condition) (pitches)
      (let* ((nonrests (remove nil pitches))
@@ -879,7 +1225,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
              (5 (("beat" :beat) ("all" :all) ("1st beat" :1st-beat) ("1st voice" :1st-voice) ("at timepoints" :at-timepoints)))
              (6 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (8 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Restrict harmonic intervals. Absolute intervals are midicents; PC intervals are 0..11."
+  :doc "Restricts the harmonic intervals between all combinations of the given voices to only (or not) those intervals specified. Absolute intervals are midicents; PC intervals are 0..11. For example, 'empty' perfect consonances in two-voice counterpoint can be excluded with this rule.
+
+Args:
+  intervals (list of ints): Specified intervals.
+  pcs?: whether absolute intervals or PC intervals should be used.
+  exclude/only: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
+  combinations: Controls whether to constrain only intervals between the bass and a higher voice (:over-bass), between pairs of consecutive voices such as soprano-alto, alto-tenor etc. (:consecutive-voices), or between all voice combinations (:all-combinations).
+
+Other arguments are inherited from r-pitch-pitch."
   (labels ((mk (v1 v2)
              (ce::R-pitch-pitch
               (%rule-function (pcs? intervals exclude/only) (pitches)
@@ -909,7 +1263,15 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
              (4 (("over bass" :over-bass) ("consecutive voices" :consecutive-voices) ("all combinations" :all-combinations)))
              (5 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (7 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Limit harmonic interval size in OM midicents."
+  :doc "Limit the minimum/maximum harmonic interval of simultaneous notes between given voices. In OM, interval values are expressed in midicents.
+
+Args:
+  voices (list of ints): the voices to constrain.
+  min-interval (number or NIL): minimum interval in midicents. Ignored if NIL.
+  max-interval (number or NIL): maximum interval in midicents. Ignored if NIL.
+  combinations: Controls whether to constrain only intervals between the voice with highest note number and other voices (:over-bass), between pairs of consecutive voices such as soprano-alto, alto-tenor etc. (:consecutive-voices), or between all voice combinations (:all-combinations).
+
+Other arguments are inherited from r-pitch-pitch."
   (rule::min/max-harmonic-interval :voices voices :min-interval min-interval :max-interval max-interval
                                    :input-mode input-mode :combinations combinations
                                    :gracenotes? gracenotes? :timepoints timepoints
@@ -920,7 +1282,16 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1 :initvals '(0 200 :true/false 1 0)
   :indoc '("voices" "maximum melodic interval (midicents)" "rule type" "weight" "scale voice")
   :menuins '((2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Tintinnabuli M-voice rule adapted to OM midicents."
+  :doc "Rules for a tintinnabuli M-voice, inspired by Arvo Pärt (slightly generalised, because this rule is applicable over any harmony). The voice consists only of scale tones that move stepwise (max interval is whole tone). This rule is adapted to OM midicents.
+
+Args:
+voices (int or list of ints): the number of the voice(s) to constrain.
+
+Optional:
+max-interval (default 200): maximum interval in midicents.
+scale-voice (default 0): the voice representing the underlying scale.
+
+Other arguments are inherited from r-pitches-one-voice and r-pitch-pitch."
   (ce::rules-to-cluster
    (om-cr::min/max-interval :voices voices :max-interval max-interval :rule-type rule-type :weight weight)
    (om-cr::only-scale-pcs :voices voices :input-mode :all :rule-type rule-type :weight weight :scale-voice scale-voice)))
@@ -931,7 +1302,17 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1 :initvals '(0 0 1200 :true/false 1 1)
   :indoc '("voices" "minimum melodic interval (midicents)" "maximum melodic interval (midicents)" "rule type" "weight" "chord voice")
   :menuins '((3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Tintinnabuli T-voice rule adapted to OM midicents."
+  :doc "Rules for a tintinnabuli T-voice, inspired by Arvo Pärt (slightly generalised, because this rule is applicable over any harmony). The voice consists only of chord tones, and the minimum/maximum interval size can be controlled. This rule is adapted to OM midicents.
+
+Args:
+voices (int or list of ints): the number of the voice(s) to constrain.
+
+Key args:
+min-interval (default 0): minimum interval in midicents.
+max-interval (default 1200): maximum interval in midicents.
+chord-voice (default 1): the voice representing the underlying chord.
+
+Other arguments are inherited from r-pitches-one-voice and r-pitch-pitch."
   (ce::rules-to-cluster
    (om-cr::min/max-interval :voices voices :min-interval min-interval :max-interval max-interval :rule-type rule-type :weight weight)
    (om-cr::only-chord-pcs :voices voices :input-mode :all :rule-type rule-type :weight weight :chord-voice chord-voice)))
@@ -941,7 +1322,9 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1 :initvals '(nil nil 1 :true/false 1)
   :indoc '("positions" "chord" "chord voice" "rule type" "weight")
   :menuins '((3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Set the chord at selected positions of the chord voice."
+  :doc "Restricts the chords at the given positions (0-based) in the chord-voice to the given chord.
+
+Other arguments are inherited from r-index-pitches-one-voice."
   (rule::set-chord-at-positions positions chord :chord-voice chord-voice :rule-type rule-type :weight weight))
 
 (om::defmethod! om-cr::set-root-at-positions
@@ -950,7 +1333,13 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("positions" "root (midicent or PC)" "compare pitch class" "chord voice" "rule type" "weight")
   :menuins '((2 (("pitch class" t) ("absolute pitch" nil)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Set roots at selected chord positions. Pitch-class comparison is adapted to OM midicents."
+  :doc "Restricts the chord roots (the lowest chord pitches) at the given positions (0-based) in the chord-voice to the given root.
+
+If pc? is set to T, then this constraint compares pitch classes instead of actual pitches.
+
+Set roots at selected chord positions. Pitch-class comparison is adapted to OM midicents.
+
+Other arguments are inherited from r-index-pitches-one-voice."
   (let ((root-pc (%pc-spec root)))
     (loop for pos in positions append
           (ce::R-index-pitches-one-voice
@@ -965,7 +1354,33 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1 :initvals '(700 1 nil :true/false 1)
   :indoc '("maximum distance (midicents)" "chord voice" "number of PCs" "rule type" "weight")
   :menuins '((3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Limit voice-leading distance between successive chords; OM distance is expressed in midicents."
+  :doc "Constrains the voice leading distance of consecutive chords in chord-voice to be at most max-distance.
+
+The voice leading distance between two given chords, each a list of MIDI note numbers, is an integer measured in semitones. It is the minimal sum of intervals between chord1 and chord2. The voice-leading distance is directionless in the sense that regardless whether a voice moves up or down, always the smaller interval is taken into account. The lower the voice leading distance, the more 'smooth' is the harmonic progression (a chord repetition is quasi most smooth).
+
+Currently, only 12-TET is supported.
+
+Example: voice leading distance between C major and Ab major triads
+(voice-leading-distance '(60 64 67) '(56 60 63))
+=> 2
+C->C=0 + E->Eb=1 + G->Ab=1, so the sum is 2
+
+Note: Only the minimal intervals from all chord2 pitch classes to chord1 pitch classes are taken into account. There may be pitch classes in chord1 which are ignored as all pitch classes of chord2 may be closer to some other pitch classes of chord1.
+
+Example: C-maj -> F#-maj = 4
+(voice-leading-distance '(60 64 67) '(66 70 73))
+=> 4
+C->C#=1, C->A#=2, G->F#=1 -- the E of C-maj is ignored in the computation
+
+If `n' is set, only the first `n' pitch classes of the chords are taken into account.
+
+  Args:
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first `n' pitch classes of chords are taken into account, if this argument is set.
+
+Limit voice-leading distance between successive chords; OM distance is expressed in midicents.
+
+Other arguments are inherited from r-pitches-one-voice."
   (ce::R-pitches-one-voice
    (%rule-function (n max-distance) (c1 c2)
      (if (and c1 c2)
@@ -978,7 +1393,28 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1 :initvals '(1 nil :heur-switch 1)
   :indoc '("chord voice" "number of PCs" "rule type" "weight")
   :menuins '((2 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Constrain successive chords to ascending Schoenbergian progressions."
+  :doc "Rule that constrains consecutive chords to an ascending progression. By default, this is an heuristic rule.
+
+A progression from chord1 to chord2 is ascending (or strong) if chord1 and chord2 have common pitch classes, but the root of chord2 does not occur in the set of pitch classes of chord1.
+
+Such a definition is less restrictive than Schoenberg's original guidelines (e.g., a root progression by a step upwards into a 7th chord also counts as an ascending progression here). Therefore, the rule supports the additional argument n: only the first n pitches of chord1 and chord2 are taken into account, if this argument is set.
+
+Example:
+
+By default, a root progression by a step upwards into a 7th chord also counts as an ascending progression.
+;; (ascending-progression? '(60 64 67) '(62 66 69 72)) ; T
+
+That is not the case, if only the first 3 distinct pitch classes are taken into account, which can be set with n. Note that the order of the pitches (and thus pitch classes) matters here -- the seventh is the 4th pitch in the chord. If you do not want certain chord pitches to be taken into account, you have to make sure that these pitches occur above the threshold n.
+;; (ascending-progression? '(60 64 67) '(62 66 69 72) 3) ; nil
+
+  Args:
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.Other arguments are inherited from r-pitches-one-voice.
+
+  Music representation convention:
+  - A chord/spectrum/scale is represented as a list of pitches or pitch classes.
+  - Pitches are represented as MIDI note numbers, pitch classes as an integers between 0 and 11 (currently limited to 12-TET).
+  - The root of a chord/spectrum/scale is its first pitch (class)."
   (ce::R-pitches-one-voice
    (%rule-function (n) (c1 c2)
      (rule::ascending-progression? (%mc-chord->semitones c1) (%mc-chord->semitones c2) n))
@@ -991,7 +1427,18 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :indoc '("allow repetition" "allow interchange progression" "chord voice" "number of PCs" "rule type" "weight")
   :menuins '((0 (("yes" t) ("no" nil))) (1 (("yes" t) ("no" nil)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Resolve descending Schoenbergian chord progressions."
+  :doc "Rule that constrains a chord progression according to Schoenberg's recommendation. For any three successive chords/scales, if the first two chords form a descending progression, then the progression from the first to the third chord forms a strong progression (so the middle chord is quasi a 'passing chord'). Also, the last chord/scale pair forms always a strong progression.
+
+  Args:
+  - allow-interchange-progression (Boolean): If true, then mere interchange progressions (e.g., I V I), are permitted as well. In any case, no two descending progressions must follow each other.
+  - allow-repetition (Boolean): If true, two consecutive chords can have the same root.
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.Other arguments are inherited from r-pitches-one-voice.
+
+  Music representation convention:
+  - A chord/spectrum/scale is represented as a list of pitches or pitch classes.
+  - Pitches are represented as MIDI note numbers, pitch classes as an integers between 0 and 11 (currently limited to 12-TET).
+  - The root of a chord/spectrum/scale is its first pitch (class)."
   (let ((rules
           (list
            (ce::R-pitches-one-voice
@@ -1020,7 +1467,21 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
                  ("resolve descending" :resolve-descending-progression)
                  ("harmonic band/common PCs" :common-pcs)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Convenience wrapper for Schoenbergian progression rules."
+  :doc "[Convenience constraint] Constraints the chord root progression of consecutive chords, but different values of `progression' set different variants of Schoenbergs rule set. Supported values for `progression' are as follows.
+
+   - :ascending - only ascending chord progressions are permitted.
+   - (:resolve-descending-progression &rest args) - descending progressions are resolved (arguments to rule resolve-descending-progression can be given as further values in this list).
+   - :harmonic-band - consecutive chords must share common pitch classes.
+   - :common-pcs - consecutive chords must share common pitch classes.
+
+  Args:
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.Other arguments are inherited from r-pitches-one-voice.
+
+  Music representation convention:
+  - A chord/spectrum/scale is represented as a list of pitches or pitch classes.
+  - Pitches are represented as MIDI note numbers, pitch classes as an integers between 0 and 11 (currently limited to 12-TET).
+  - The root of a chord/spectrum/scale is its first pitch (class)."
   (case progression
     (:ascending (om-cr::ascending-progression :chord-voice chord-voice :n n :rule-type rule-type :weight weight))
     (:resolve-descending-progression
@@ -1044,7 +1505,9 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("all" :all) ("beat" :beat) ("1st beat" :1st-beat) ("1st voice" :1st-voice)))
              (2 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (3 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Prevent voice crossing."
+  :doc "Voices should not cross, i.e., the pitch of simultaneous note pairs in voices are always sorted in decreasing order.
+
+Arguments are inherited from r-pitch-pitch."
   (let* ((vs (sort (copy-list (%ensure-list voices)) #'<))
          (rule (%rule-function () (pitches)
                  (apply #'>= (remove nil pitches)))))
@@ -1063,7 +1526,13 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :menuins '((1 (("open" :open) ("open and hidden" :open-and-hidden)))
              (3 (("normal" :normal) ("exclude gracenotes" :exclude-gracenotes)))
              (4 (("true/false" :true/false) ("heur-switch" :heur-switch))))
-  :doc "Prohibit parallel harmonic intervals. OM interval values are midicents."
+  :doc "Parallels of given intervals are prohibited between all combinations of the given voices. OM interval values are midicents.
+
+Args:
+  mode: Specifies whether only open or also hidden intervals should be avoided.
+  intervals (list of ints): Specifies the intervals (as midicents modulo octave) of which parallels should be avoided.
+
+Other arguments are inherited from r-pitch-pitch."
   (let* ((vs (%ensure-list voices))
          (rule
            (%rule-function (intervals mode) (pitches1 pitches2)
@@ -1103,7 +1572,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
   :icon 1
   :initvals '(nil 6000 7200)
   :indoc '("scale pitches or PCs" "minimum pitch (midicents)" "maximum pitch (midicents)")
-  :doc "Build a Cluster-Engine pitch domain from scale pitch classes using OM midicents."
+  :doc "Expects a list of pitches representing a scale (either pitch classes or absolute pitches), and a minimum and maximum pitch. Returns a pitch domain for clusterengine that contains all pitches between the min and max in the scale. All pitch values are expressed as OM midicents."
   (let ((pcs (remove-duplicates (mapcar #'%pc-spec scale-pitches))))
     (loop for pitch from min to max by 100
           when (member (%mc-pc pitch) pcs)
@@ -1116,7 +1585,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
 
 (om::defmethod! om-cr::read-lisp-file (path)
   :icon 1 :initvals '(nil) :indoc '("pathname")
-  :doc "Read and return the first Lisp form in a file."
+  :doc "Expects a path name to a lisp file and returns the read (but not evaluated) content of the file. For example, if the file ; contains (1 2 3) then the list (1 2 3) is return (i.e., not a string, but a list, but 1 is not called as a function). Note that only the 1st Lisp form in path is returned."
   (rule::read-lisp-file path))
 
 (om::defmethod! om-cr::pprint-to-file (path expr)
@@ -1126,7 +1595,7 @@ variable is inlined as a literal, so FIX-OMPATCH-RULE can re-evaluate the body."
 
 (om::defmethod! om-cr::map-pairwise (fn xs)
   :icon 1 :initvals '(nil nil) :indoc '("binary function" "list")
-  :doc "Apply FN to every unordered pair of elements in XS."
+  :doc "Apply FN to every unordered pair of elements in XS and collect the results, i.e. ((fn xs1 xs2) .. (fn xs1 xsN) (fn xs2 xs3) .. (fn xsN-1 xsN))."
   (rule::map-pairwise fn xs))
 
 (om::defmethod! om-cr::mappend (func &rest inlists)
