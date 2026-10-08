@@ -275,7 +275,9 @@ A profile as OMN expression with leading rests not yet properly supported.
      (mode :pitch) ; options: :pitch, :rhythm
      (constrain :profile) ; options: :profile, :intervals, :directions
      (start 0)
-     (weight-offset 0))
+     (weight-offset 0)
+     (transform nil)
+     (map nil))
   "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile.
 
 Args:
@@ -293,6 +295,10 @@ Args:
 - start (int): At which note position to start applying this rule (zero-based). 
 
 - weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).
+
+- transform: Change the whole sequence of input profile with some definition (e.g., reverse or rotate the sequence, or remove some elements). Expects a function expecting a list and returning a list. Some functions are already predefined for convenience (menu Cluster Rules - Profile - Transformations).
+
+- map: Transform every individual profile value with some definition (e.g., add some random offset or transpose). Expects a function expecting a number and returning a number. Some functions are already predefined for convenience (menu Cluster Rules - Profile - Mappings). You can use multiple functions together by combining them with compose-functions.
 
 
 Note: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule (in future it would be nice to control the average pitch/rhythm of motifs, but that would require different rule applicators).
@@ -326,7 +332,13 @@ BUG: mode :rhythm not yet working.
 				      (om:omn :pitch flat-omn)))))
 			  (:rhythm (om:omn :length profile))))
 		       (T (error "Not a supported profile format: ~A" profile))))
-		(profile-length (length my-profile)))
+		(transformed-profile (if transform
+					 (funcall transform my-profile)
+				       my-profile))
+		(mapped-profile (if map
+				    (mapcar map transformed-profile)
+				  transformed-profile))
+		(profile-length (length mapped-profile)))
 	   (funcall (case mode
 		      (:pitch #'hr-pitches-one-voice)
 		      (:rhythm #'hr-rhythms-one-voice))
@@ -341,26 +353,26 @@ BUG: mode :rhythm not yet working.
 				 (abs
 				  ;; process different settings for constrain
 				  (case constrain
-				    (:profile  (- (first (last xs)) (nth (1- l) my-profile)))
+				    (:profile  (- (first (last xs)) (nth (1- l) mapped-profile)))
 				    (:intervals (if (>= l 2)
 						    (case mode
 						      ;; distance between distances of last two vals
 						      (:pitch (- (abs (- (apply #'- (last xs 2))
-									 (- (nth (- l 2) my-profile)
-									    (nth (- l 1) my-profile))))))
+									 (- (nth (- l 2) mapped-profile)
+									    (nth (- l 1) mapped-profile))))))
 						      ;; for rhythm distance is quotient not difference
 						      ;; TODO: unfinished for rhythm -- how to compute distance of distances?
 						      (:rhythm (abs (- (apply #'/ (last xs 2))
-								       (/ (nth (- l 2) my-profile)
-									  (nth (- l 1) my-profile))))))
+								       (/ (nth (- l 2) mapped-profile)
+									  (nth (- l 1) mapped-profile))))))
 						  0))
 				    ;; distance between directions of last two vals
 				    ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
 				    (:directions (if (>= l 2)
 						     (- (apply #'_direction-int (last xs 2))
 							(_direction-int
-							 (nth (- l 2) my-profile)
-							 (nth (- l 1) my-profile)))
+							 (nth (- l 2) mapped-profile)
+							 (nth (- l 1) mapped-profile)))
 						   0)))))
 			    ;; otherwise no preference
 			    0)))

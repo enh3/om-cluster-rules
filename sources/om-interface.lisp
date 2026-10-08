@@ -29,11 +29,53 @@
                      collect (/ i (max 1 (1- (length xs)))))
                (mapcar (lambda (x) (/ (- x x0) span)) xs))))))
 
-(defun %bpf->fenv (bpf)
-  "Convert an OM BPF to the internal FENV representation."
+(defun %clip-bpf-points (xs ys s e)
+  "Clip the graph through the point pairs (XS YS) to the score-time window
+[S,E] and normalise it onto [0,1] for FENV:LIST->FENV :XS.  Points outside
+the window are dropped; y is interpolated where the graph crosses a window
+edge, held where it stops short, so the result always spans [0,1]."
+  (unless (< s e) (error "Empty window: S=~S E=~S" s e))
+  (let* ((sorted (stable-sort (mapcar #'cons xs ys) #'< :key #'car))
+         (pts (let ((acc nil))
+                (dolist (p sorted (nreverse acc))
+                  (when (or (null acc) (/= (car p) (caar acc)))
+                    (push p acc))))))
+    (unless pts (error "Cannot clip an empty BPF."))
+    (flet ((y-at (x)
+             (cond ((<= x (car (first pts))) (cdr (first pts)))
+                   ((>= x (car (car (last pts)))) (cdr (car (last pts))))
+                   (t (or (loop for tail on pts
+                                for p1 = (first tail)
+                                for p2 = (second tail)
+                                while p2
+                                when (<= (car p1) x (car p2))
+                                  return (let* ((x1 (car p1)) (y1 (cdr p1))
+                                                (x2 (car p2)) (y2 (cdr p2)))
+                                           (+ y1 (* (- x x1) (/ (- y2 y1) (- x2 x1)))))
+                                finally (return nil))
+                          (cdr (car (last pts))))))))
+      (let* ((kept (loop for p in pts
+                         when (and (> (car p) s) (< (car p) e))
+                           collect p))
+             (clipped (append (list (cons s (y-at s)))
+                              kept
+                              (list (cons e (y-at e)))))
+             (w (- e s)))
+        (values (mapcar (lambda (p) (/ (- (car p) s) w)) clipped)
+                (mapcar #'cdr clipped))))))
+
+(defun %bpf->fenv (bpf &optional pd start)
+  "Convert an OM BPF to the internal FENV representation.  With PD/START
+(timed profile rules) the graph is clipped to [START, START+PD]; without,
+the x axis is span-normalized to [0,1] as before."
   (let ((xs (om::x-points bpf))
         (ys (om::y-points bpf)))
     (cond ((null ys) (error "Cannot convert an empty BPF to FENV."))
+          ((and (consp xs) (numberp pd) (plusp pd)
+                (or (null start) (numberp start)))
+           (let ((s (or start 0)))
+             (multiple-value-bind (nx ny) (%clip-bpf-points xs ys s (+ s pd))
+               (fenv:list->fenv ny :xs nx))))
           ((null (rest ys)) (fenv:list->fenv ys))
           (t (fenv:list->fenv ys :xs (%normalise-bpf-xs xs))))))
 
@@ -44,13 +86,14 @@
          (ys (fenv:fenv->list env n)))
     (om::simple-bpf-from-list xs ys 'om::bpf 3)))
 
-(defun %profile->fenv (profile)
-  "Convert BPF/BPF-LIB profile inputs while leaving ordinary Lisp data intact."
-  (cond ((%bpf-p profile) (%bpf->fenv profile))
+(defun %profile->fenv (profile &optional pd start)
+  "Convert BPF/BPF-LIB profile inputs while leaving ordinary Lisp data intact.
+PD/START are passed through for timed profile rules."
+  (cond ((%bpf-p profile) (%bpf->fenv profile pd start))
         ((%bpf-lib-p profile)
-         (mapcar #'%bpf->fenv (om::bpf-list profile)))
+         (mapcar (lambda (b) (%bpf->fenv b pd start)) (om::bpf-list profile)))
         ((and (listp profile) (every #'%bpf-p profile))
-         (mapcar #'%bpf->fenv profile))
+         (mapcar (lambda (b) (%bpf->fenv b pd start)) profile))
         (t profile)))
 
 (defun %sample-profile (profile n)
@@ -165,8 +208,8 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 BUG:
 A profile as OMN expression with leading rests not yet properly supported.
 
-OM BPF/BPF-LIB inputs are converted internally to FENV."
-  (rule::follow-timed-profile-hr (%profile->fenv profile)
+OM BPF/BPF-LIB inputs are converted internally to FENV: their x values are absolute score time, clipped to [start, start+profile-duration]. Lists and OMN sequences are stretched across profile-duration instead."
+  (rule::follow-timed-profile-hr (%profile->fenv profile profile-duration start)
                                  :voices voices :profile-duration profile-duration
                                  :start start :end end :mode mode :constrain constrain
                                  :gracenotes? gracenotes? :interpolate-score? interpolate-score?
@@ -174,11 +217,11 @@ OM BPF/BPF-LIB inputs are converted internally to FENV."
 
 (om::defmethod! om-cr::follow-profile-hr
     (profile &key (voices 0) (n 0) (mode :pitch) (constrain :profile)
-             (start 0) (weight-offset 0))
+             (start 0) (weight-offset 0) (transform nil) (map nil))
   :icon 1
-  :initvals '(nil 0 0 :pitch :profile 0 0)
+  :initvals '(nil 0 0 :pitch :profile 0 0 nil nil)
   :indoc '("profile (list, BPF, BPF-LIB or FENV)" "voices" "number of notes"
-           "mode" "constraint" "start" "weight offset")
+           "mode" "constraint" "start" "weight offset" "transform" "map")
   :menuins '((3 (("pitch" :pitch) ("rhythm" :rhythm)))
              (4 (("profile" :profile) ("intervals" :intervals) ("directions" :directions))))
   :doc "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile.
@@ -199,6 +242,10 @@ Args:
 
 - weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).
 
+- transform: Change the whole sequence of input profile with some definition (e.g., reverse or rotate the sequence, or remove some elements). Expects a function expecting a list and returning a list. Some functions are already predefined for convenience (menu Cluster Rules - Profile - Transformations).
+
+- map: Transform every individual profile value with some definition (e.g., add some random offset or transpose). Expects a function expecting a number and returning a number. Some functions are already predefined for convenience (menu Cluster Rules - Profile - Mappings). You can use multiple functions together by combining them with compose-functions.
+
 NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule (in future it would be nice to control the average pitch/rhythm of motifs, but that would require different rule applicators).
 
 BUG: mode :rhythm not yet working.
@@ -206,7 +253,8 @@ BUG: mode :rhythm not yet working.
 OM BPF/BPF-LIB inputs are converted internally to FENV."
   (rule::follow-profile-hr (%profile->fenv profile)
                            :voices voices :n n :mode mode :constrain constrain
-                           :start start :weight-offset weight-offset))
+                           :start start :weight-offset weight-offset
+                           :transform transform :map map))
 
 (om::defmethod! om-cr::follow-interval-profile
     (profile &key (voices 0) (n 0) (step-size 200) (start 0))
